@@ -27,6 +27,10 @@ COPY backend/. .
 # Install PHP dependencies (artisan present for composer scripts)
 RUN composer install --no-dev --no-progress --prefer-dist --optimize-autoloader
 
+# Entrypoint to run migrations then start Apache
+COPY backend/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Set Laravel writable dirs
 RUN chown -R www-data:www-data storage bootstrap/cache
 
@@ -38,4 +42,4 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 # Expose Render-provided port
 EXPOSE 80
 
-CMD ["apache2-foreground"]
+CMD ["/usr/local/bin/entrypoint.sh"]
