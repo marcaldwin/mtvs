@@ -18,18 +18,37 @@ return new class extends Migration {
             } catch (\Throwable $e) {
                 // Fallback without DBAL
                 try {
+                    // MySQL syntax
                     DB::statement('ALTER TABLE sessions MODIFY user_id BIGINT UNSIGNED NULL');
+                } catch (\Throwable $ignored) {
+                }
+                try {
+                    // Postgres syntax
+                    DB::statement('ALTER TABLE sessions ALTER COLUMN user_id DROP NOT NULL');
+                    DB::statement('ALTER TABLE sessions ALTER COLUMN user_id TYPE BIGINT USING user_id::bigint');
                 } catch (\Throwable $ignored) {
                 }
             }
 
             // Null out orphans so FK can be added
-            DB::statement("
-                UPDATE sessions s
-                LEFT JOIN users u ON u.id = s.user_id
-                SET s.user_id = NULL
-                WHERE s.user_id IS NOT NULL AND u.id IS NULL
-            ");
+            try {
+                // MySQL cleanup
+                DB::statement("
+                    UPDATE sessions s
+                    LEFT JOIN users u ON u.id = s.user_id
+                    SET s.user_id = NULL
+                    WHERE s.user_id IS NOT NULL AND u.id IS NULL
+                ");
+            } catch (\Throwable $ignored) {
+                // Postgres cleanup
+                DB::statement("
+                    UPDATE sessions s
+                    SET user_id = NULL
+                    WHERE user_id IS NOT NULL AND NOT EXISTS (
+                        SELECT 1 FROM users u WHERE u.id = s.user_id
+                    )
+                ");
+            }
 
             // Drop existing FK if present (idempotent)
             try {
