@@ -92,6 +92,5 @@ return [
     |
     */
 
-    'supports_credentials' => true,
-
+    'supports_credentials' => false,
 ];
