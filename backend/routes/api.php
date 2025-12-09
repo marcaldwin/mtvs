@@ -37,17 +37,17 @@ Route::prefix('auth')->group(function () {
 Route::get('violation-types', [ViolationController::class, 'types']);
 Route::get('violations', [ViolationController::class, 'index']);
 
-// Make enforcer "today stats" PUBLIC so dashboard works without token issues
-Route::get('enforcer/stats/today', [EnforcerStatsController::class, 'today']);
-
 // =====================
 // PROTECTED ROUTES
-// (tickets + admin APIs)
+// (tickets + enforcer stats + admin APIs)
 // =====================
 Route::middleware(['auth:sanctum'])->group(function () {
 
     // Enforcer: create tickets
     Route::post('tickets', [TicketController::class, 'store']);
+
+    // Enforcer: dashboard stats for TODAY
+    Route::get('enforcer/stats/today', [EnforcerStatsController::class, 'today']);
 
     // Admin users
     Route::get('admin/users', [AdminUserController::class, 'index']);
