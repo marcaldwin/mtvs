@@ -11,13 +11,13 @@ use App\Http\Controllers\API\AdminPaymentController;
 use App\Http\Controllers\API\AdminReportsController;
 use App\Http\Controllers\API\AdminStatsController;
 
-
 Route::get('/ping', function () {
     return response()->json([
         'pong' => true,
         'env' => app()->environment(),
     ]);
 });
+
 // =====================
 // AUTH
 // =====================
@@ -37,17 +37,17 @@ Route::prefix('auth')->group(function () {
 Route::get('violation-types', [ViolationController::class, 'types']);
 Route::get('violations', [ViolationController::class, 'index']);
 
+// Make enforcer "today stats" PUBLIC so dashboard works without token issues
+Route::get('enforcer/stats/today', [EnforcerStatsController::class, 'today']);
+
 // =====================
 // PROTECTED ROUTES
-// (tickets + enforcer stats + admin APIs)
+// (tickets + admin APIs)
 // =====================
 Route::middleware(['auth:sanctum'])->group(function () {
 
     // Enforcer: create tickets
     Route::post('tickets', [TicketController::class, 'store']);
-
-    // Enforcer: dashboard stats for TODAY
-    Route::get('enforcer/stats/today', [EnforcerStatsController::class, 'today']);
 
     // Admin users
     Route::get('admin/users', [AdminUserController::class, 'index']);
@@ -60,17 +60,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('admin/violations/{violation}', [ViolationController::class, 'update']);
     Route::patch('admin/violations/{violation}', [ViolationController::class, 'update']);
 
-    //admin payments
-    Route::get('/admin/payments', [AdminPaymentController::class, 'index']);
+    // Admin payments
+    Route::get('admin/payments', [AdminPaymentController::class, 'index']);
 
     // Clerk payments
-    Route::get('/clerk/payments/ticket-lookup', [ClerkPaymentController::class, 'lookupTicket']);
-    Route::post('/clerk/payments', [ClerkPaymentController::class, 'store']);
-
+    Route::get('clerk/payments/ticket-lookup', [ClerkPaymentController::class, 'lookupTicket']);
+    Route::post('clerk/payments', [ClerkPaymentController::class, 'store']);
 
     // Admin reports
-    Route::get('/admin/reports/overview', [AdminReportsController::class, 'overview']);
-    Route::get('/admin/reports/citations', [AdminReportsController::class, 'citations']);
+    Route::get('admin/reports/overview', [AdminReportsController::class, 'overview']);
+    Route::get('admin/reports/citations', [AdminReportsController::class, 'citations']);
+
     // Admin stats
-    Route::get('/admin/stats', AdminStatsController::class);
+    Route::get('admin/stats', AdminStatsController::class);
 });
