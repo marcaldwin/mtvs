@@ -10,15 +10,23 @@ use App\Http\Controllers\ClerkPaymentController;
 use App\Http\Controllers\API\AdminPaymentController;
 use App\Http\Controllers\API\AdminReportsController;
 use App\Http\Controllers\API\AdminStatsController;
+
+
+Route::get('/ping', function () {
+    return response()->json([
+        'pong' => true,
+        'env' => app()->environment(),
+    ]);
+});
 // =====================
 // AUTH
 // =====================
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
-    Route::post('login',    [AuthController::class, 'login']);
+    Route::post('login', [AuthController::class, 'login']);
 
     Route::middleware('auth:sanctum')->group(function () {
-        Route::get('me',      [AuthController::class, 'me']);
+        Route::get('me', [AuthController::class, 'me']);
         Route::post('logout', [AuthController::class, 'logout']);
     });
 });
@@ -27,7 +35,7 @@ Route::prefix('auth')->group(function () {
 // PUBLIC LOOKUP ROUTES
 // =====================
 Route::get('violation-types', [ViolationController::class, 'types']);
-Route::get('violations',      [ViolationController::class, 'index']);
+Route::get('violations', [ViolationController::class, 'index']);
 
 // =====================
 // PROTECTED ROUTES
@@ -42,15 +50,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('enforcer/stats/today', [EnforcerStatsController::class, 'today']);
 
     // Admin users
-    Route::get('admin/users',          [AdminUserController::class, 'index']);
-    Route::get('admin/users/{id}',     [AdminUserController::class, 'show']);
-    Route::patch('admin/users/{id}',   [AdminUserController::class, 'update']);
+    Route::get('admin/users', [AdminUserController::class, 'index']);
+    Route::get('admin/users/{id}', [AdminUserController::class, 'show']);
+    Route::patch('admin/users/{id}', [AdminUserController::class, 'update']);
 
     // Admin violations
-    Route::get('admin/violations',                [ViolationController::class, 'adminIndex']);
-    Route::post('admin/violations',               [ViolationController::class, 'store']);
-    Route::put('admin/violations/{violation}',    [ViolationController::class, 'update']);
-    Route::patch('admin/violations/{violation}',  [ViolationController::class, 'update']);
+    Route::get('admin/violations', [ViolationController::class, 'adminIndex']);
+    Route::post('admin/violations', [ViolationController::class, 'store']);
+    Route::put('admin/violations/{violation}', [ViolationController::class, 'update']);
+    Route::patch('admin/violations/{violation}', [ViolationController::class, 'update']);
 
     //admin payments
     Route::get('/admin/payments', [AdminPaymentController::class, 'index']);
