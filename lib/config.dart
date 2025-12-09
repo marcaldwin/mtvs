@@ -1,6 +1,6 @@
   /// Prefer overriding at run time:
 /// flutter run --dart-define=API_BASE_URL=https://mtvts-backend.onrender.com/api
-const String _productionApiBaseUrl = 'https://mtvts-backend.onrender.com/api';
+const String _productionApiBaseUrl = 'https://mtvts-backend-3jjy.onrender.com/index.php/api';
 const String _envApiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
   defaultValue: '',
