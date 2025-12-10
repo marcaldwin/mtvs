@@ -9,6 +9,12 @@ class Auth extends ChangeNotifier {
     _dio = Dio(
       BaseOptions(
         baseUrl: baseUrl.endsWith('/') ? baseUrl : '$baseUrl/', // <-- normalize
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        // Prevent throwing on 4xx so we can read validation errors manually
+        validateStatus: (status) => status != null && status < 500,
       ),
     );
     debugPrint(
@@ -50,7 +56,42 @@ class Auth extends ChangeNotifier {
       final res = await _dio.post(
         'auth/login',
         data: {'email': email, 'password': password},
+        options: Options(
+          validateStatus: (s) => true,
+          headers: {'Accept': 'application/json'},
+        ),
       );
+
+      // Handle expected errors manually
+      if (res.statusCode == 503) {
+        error = 'Server is waking up or under maintenance. Try again in a moment.';
+        busy = false;
+        notifyListeners();
+        return false;
+      }
+      if (res.statusCode == 500) {
+        error = 'Server internal error.';
+        busy = false;
+        notifyListeners();
+        return false;
+      }
+      if (res.statusCode == 422) {
+        final data = res.data;
+        if (data is Map && data['message'] is String) {
+          error = data['message'];
+        } else {
+          error = 'Validation failed.';
+        }
+        busy = false;
+        notifyListeners();
+        return false;
+      }
+      if (res.statusCode == 401) {
+        error = 'Invalid credentials.';
+        busy = false;
+        notifyListeners();
+        return false;
+      }
 
       final t = _readToken(res.data);
       if (t == null || t.isEmpty)
@@ -86,15 +127,40 @@ class Auth extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      await _dio.post(
+      // Backend expects: full_name, username, email, password, password_confirmation
+      // Frontend has: name, email, password, confirm (in UI but not passed here yet)
+      // Strategy: 
+      // 1. Map name -> full_name
+      // 2. Map email -> username
+      // 3. Send password as password_confirmation (frontend validated match)
+      final res = await _dio.post(
         'auth/register',
         data: {
-          'name': name,
+          'full_name': name,
+          'username': email, // using email as username
           'email': email,
           'password': password,
-          'role': role, // slug: admin | enforcer | cashier
+          'password_confirmation': password, 
+          'role': role, // slug
         },
+        options: Options(
+          validateStatus: (s) => true,
+          headers: {'Accept': 'application/json'},
+        ),
       );
+
+      if (res.statusCode == 422) {
+        final data = res.data;
+        if (data is Map && data['message'] is String) {
+          error = data['message']; // e.g. "The email has already been taken."
+        } else {
+          error = 'Validation failed.';
+        }
+        busy = false;
+        notifyListeners();
+        return false;
+      }
+
       busy = false;
       notifyListeners();
       return true;

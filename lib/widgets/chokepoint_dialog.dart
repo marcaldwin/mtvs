@@ -37,7 +37,10 @@ class _ChokepointDialogState extends State<ChokepointDialog> {
           ),
         ),
         actions: [
-          TextButton(onPressed: null, child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               if (_formKey.currentState!.validate()) {
