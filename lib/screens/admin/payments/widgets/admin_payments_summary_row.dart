@@ -5,13 +5,11 @@ import 'package:flutter/material.dart';
 class AdminPaymentsSummaryRow extends StatelessWidget {
   final String todayValue;
   final String monthValue;
-  final String reversedValue;
 
   const AdminPaymentsSummaryRow({
     super.key,
     required this.todayValue,
     required this.monthValue,
-    required this.reversedValue,
   });
 
   @override
@@ -20,7 +18,7 @@ class AdminPaymentsSummaryRow extends StatelessWidget {
       builder: (context, constraints) {
         const spacing = 12.0;
 
-        // 2 columns: [card1][card2] on first row, [card3] under card1
+        // 2 columns: [card1][card2]
         final cardWidth = (constraints.maxWidth - spacing) / 2;
 
         return Wrap(
@@ -43,15 +41,6 @@ class AdminPaymentsSummaryRow extends StatelessWidget {
                 value: monthValue,
                 subtitle: 'Recorded payments this month',
                 icon: Icons.calendar_month_rounded,
-              ),
-            ),
-            SizedBox(
-              width: cardWidth,
-              child: _SummaryCard(
-                label: 'Reversed',
-                value: reversedValue,
-                subtitle: 'Total amount reversed',
-                icon: Icons.undo_rounded,
               ),
             ),
           ],

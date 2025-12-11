@@ -126,11 +126,7 @@ class _AdminPaymentsScreenState extends State<AdminPaymentsScreen> {
         .fold(0.0, (sum, p) => sum + p.amount);
   }
 
-  double get _reversedTotal {
-    return _payments
-        .where((p) => p.status == 'reversed')
-        .fold(0.0, (sum, p) => sum + p.amount);
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +177,6 @@ class _AdminPaymentsScreenState extends State<AdminPaymentsScreen> {
             AdminPaymentsSummaryRow(
               todayValue: _currencyFmt.format(_todayTotal),
               monthValue: _currencyFmt.format(_monthTotal),
-              reversedValue: _currencyFmt.format(_reversedTotal),
             ),
 
             const SizedBox(height: 16),

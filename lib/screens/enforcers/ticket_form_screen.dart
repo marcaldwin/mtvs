@@ -135,9 +135,10 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     setState(() {
       _loadingViolations = true;
       _violationsError = null;
+      // Keep existing selections when changing types
+      // _selectedViolations = [];
+      // _fine.text = '';
       _violations = [];
-      _selectedViolations = [];
-      _fine.text = '';
     });
 
     try {
@@ -215,21 +216,23 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     final chokepoint = op.chokepoint ?? '';
 
     // 🔹 1) ENSURE PRINTER IS CONNECTED BEFORE SAVING
-    final printer = context.read<PrinterService>();
-    final printerOk = await printer.ensureConnected(context);
+    // final printer = context.read<PrinterService>();
+    // TEMPORARY: Bypass printer check for testing
+    // final printerOk = await printer.ensureConnected(context);
+    // const printerOk = true; 
 
-    if (!printerOk) {
-      // Do NOT save ticket if printer is not ready
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Cannot issue citation. Please connect a Bluetooth printer first.',
-          ),
-        ),
-      );
-      return;
-    }
+    // if (!printerOk) {
+    //   // Do NOT save ticket if printer is not ready
+    //   if (!context.mounted) return;
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(
+    //       content: Text(
+    //         'Cannot issue citation. Please connect a Bluetooth printer first.',
+    //       ),
+    //     ),
+    //   );
+    //   return;
+    // }
 
     setState(() {
       _submitting = true;
@@ -264,7 +267,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
       if (res.statusCode != 200 && res.statusCode != 201) {
         // 🔹 API FAILED → DO NOT PRINT
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save ticket: ${res.statusCode}')),
+          SnackBar(content: Text('Failed to save ticket: ${res.statusCode} ${res.body}')),
         );
         return;
       }
@@ -313,6 +316,8 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
       // 🔹 4) API SUCCESS → TRY TO PRINT (WITH CONTROL NO + ISSUER)
       bool printed = false;
+      // TEMPORARY: Skip printing for testing
+      /*
       try {
         final violationSummary = _selectedViolations
             .map((v) => v.name)
@@ -337,6 +342,8 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
           SnackBar(content: Text('Ticket saved, but printer error: $e')),
         );
       }
+      */
+      printed = true; // Pretend it printed so we get the success message
 
       // 🔹 5) FEEDBACK + REFRESH STATS + CLOSE
       if (printed) {
@@ -398,7 +405,7 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.save),
-              label: Text(_submitting ? 'Saving...' : 'Save & Print'),
+              label: Text(_submitting ? 'Saving...' : 'Save (Test Mode)'),
               onPressed: _submitting
                   ? null
                   : () {

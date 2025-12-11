@@ -14,18 +14,55 @@ class ClerksHomeScreen extends StatefulWidget {
   State<ClerksHomeScreen> createState() => _ClerksHomeScreenState();
 }
 
-class _ClerksHomeScreenState extends State<ClerksHomeScreen> {
+class _ClerksHomeScreenState extends State<ClerksHomeScreen>
+    with SingleTickerProviderStateMixin {
   final _controlNoController = TextEditingController();
   final _receiptNoController = TextEditingController();
   final _amountController = TextEditingController();
   final _remarksController = TextEditingController();
 
   final _service = ClerkPaymentService();
+  late TabController _tabController;
 
   bool _loadingTicket = false;
   bool _savingPayment = false;
+
+  bool _loadingLists = false;
+  List<TicketInfo> _unpaidTickets = [];
+  List<TicketInfo> _paidTickets = [];
+
   String? _error;
-  TicketInfo? _ticket;
+  TicketInfo? _ticket; // The currently selected ticket (detail view)
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _fetchAllTickets();
+  }
+
+  Future<void> _fetchAllTickets() async {
+    setState(() => _loadingLists = true);
+    try {
+      final unpaid = await _service.getRecentUnpaidTickets();
+      final paid = await _service.getRecentPaidTickets();
+      if (mounted) {
+        setState(() {
+          _unpaidTickets = unpaid;
+          _paidTickets = paid;
+          _error = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = 'Error loading lists: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loadingLists = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -33,12 +70,12 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen> {
     _receiptNoController.dispose();
     _amountController.dispose();
     _remarksController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogout() async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (ctx) {
             return AlertDialog(
@@ -64,7 +101,6 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen> {
     if (!confirmed) return;
 
     final prefs = await SharedPreferences.getInstance();
-    // 🔑 Remove only what you actually use for auth
     await prefs.remove('auth_token');
     await prefs.remove('token');
     await prefs.remove('bearer_token');
@@ -76,14 +112,19 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen> {
     ).pushNamedAndRemoveUntil('/auth/login', (route) => false);
   }
 
-  Future<void> _lookupTicket() async {
-    final controlNo = _controlNoController.text.trim();
+  Future<void> _lookupTicket([String? specificControlNo]) async {
+    final controlNo = specificControlNo ?? _controlNoController.text.trim();
     if (controlNo.isEmpty) {
       setState(() {
         _error = 'Please enter a ticket control number.';
         _ticket = null;
       });
       return;
+    }
+
+    // Ensure text field is synced if we called with specificControlNo
+    if (specificControlNo != null) {
+      _controlNoController.text = specificControlNo;
     }
 
     setState(() {
@@ -122,6 +163,16 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen> {
         _loadingTicket = false;
       });
     }
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _ticket = null;
+      _controlNoController.clear();
+      _error = null;
+    });
+    // Refresh lists just in case
+    _fetchAllTickets();
   }
 
   Future<void> _submitPayment() async {
@@ -175,6 +226,10 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen> {
           const SnackBar(content: Text('Payment recorded successfully.')),
         );
       }
+      
+      // Refresh lists so it moves from unpaid to paid in the background
+      _fetchAllTickets();
+      
     } on ValidationException catch (e) {
       setState(() => _error = e.message);
     } on ApiException catch (e) {
@@ -195,7 +250,7 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen> {
     final bg = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
-      backgroundColor: bg, // keeps your dark brand background
+      backgroundColor: bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -204,45 +259,159 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen> {
             children: [
               ClerkHeader(onLogout: _handleLogout),
               const SizedBox(height: 16),
+              
+              // Search Bar always visible
               _buildSearchBar(),
+              
               if (_error != null) ...[
                 const SizedBox(height: 8),
                 Text(_error!, style: const TextStyle(color: Colors.redAccent)),
               ],
               const SizedBox(height: 12),
+
               Expanded(
                 child: _loadingTicket
                     ? const Center(child: CircularProgressIndicator())
-                    : _ticket == null
-                    ? const Center(
-                        child: Text(
-                          'Search by ticket control number to start.',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            TicketSummaryCard(info: _ticket!),
-                            const SizedBox(height: 16),
-                            PaymentFormCard(
-                              receiptController: _receiptNoController,
-                              amountController: _amountController,
-                              remarksController: _remarksController,
-                              isSaving: _savingPayment,
-                              isFullyPaid: _ticket!.outstandingAmount <= 0,
-                              onSubmit: _submitPayment,
-                            ),
-                            const SizedBox(height: 16),
-                            PaymentHistorySection(payments: _ticket!.payments),
-                          ],
-                        ),
-                      ),
+                    : _ticket != null
+                        ? _buildDetailView()
+                        : _buildTabsView(),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// Shows the ticket details + payment form + history
+  Widget _buildDetailView() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: _clearSelection,
+                icon: const Icon(Icons.arrow_back, color: Colors.white70),
+                label: const Text(
+                  'Back to List',
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
+            ],
+          ),
+          TicketSummaryCard(info: _ticket!),
+          const SizedBox(height: 16),
+          // Only show payment form if not fully paid
+          if (_ticket!.outstandingAmount > 0)
+            PaymentFormCard(
+              receiptController: _receiptNoController,
+              amountController: _amountController,
+              remarksController: _remarksController,
+              isSaving: _savingPayment,
+              isFullyPaid: false,
+              onSubmit: _submitPayment,
+            )
+          else
+             Container(
+               width: double.infinity,
+               padding: const EdgeInsets.all(16),
+               decoration: BoxDecoration(
+                 color: Colors.green.withOpacity(0.1),
+                 borderRadius: BorderRadius.circular(8),
+                 border: Border.all(color: Colors.green.withOpacity(0.3)),
+               ),
+               child: const Text(
+                 'This ticket is fully paid.',
+                 style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                 textAlign: TextAlign.center,
+               ),
+             ),
+
+          const SizedBox(height: 16),
+          PaymentHistorySection(payments: _ticket!.payments),
+        ],
+      ),
+    );
+  }
+
+  /// Shows the TabBar + TabBarView for lists
+  Widget _buildTabsView() {
+    return Column(
+      children: [
+        TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.blueAccent,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white54,
+          tabs: const [
+            Tab(text: 'Pending'),
+            Tab(text: 'History'),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: _loadingLists
+              ? const Center(child: CircularProgressIndicator())
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildTicketList(_unpaidTickets, 'No pending tickets.'),
+                    _buildTicketList(_paidTickets, 'No payment history found.'),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTicketList(List<TicketInfo> tickets, String emptyMsg) {
+    if (tickets.isEmpty) {
+      return Center(
+        child: Text(
+          emptyMsg,
+          style: const TextStyle(color: Colors.white70),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: tickets.length,
+      itemBuilder: (context, index) {
+        final t = tickets[index];
+        final isPaid = t.outstandingAmount <= 0;
+        
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          color: Colors.white.withOpacity(0.05),
+          child: ListTile(
+            title: Text(
+              '${t.controlNo}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: Text(
+              '${t.violatorName} • ₱${t.totalAmount.toStringAsFixed(2)}',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            trailing: isPaid
+                ? const Chip(
+                    label: Text('PAID', style: TextStyle(fontSize: 10)),
+                    backgroundColor: Colors.green,
+                    visualDensity: VisualDensity.compact,
+                  )
+                : Text(
+                    'Bal: ₱${t.outstandingAmount.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                        color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+                  ),
+            onTap: () => _lookupTicket(t.controlNo),
+          ),
+        );
+      },
     );
   }
 
@@ -277,7 +446,7 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen> {
         ),
         const SizedBox(width: 8),
         ElevatedButton.icon(
-          onPressed: _loadingTicket ? null : _lookupTicket,
+          onPressed: _loadingTicket ? null : () => _lookupTicket(),
           icon: const Icon(Icons.search, size: 18),
           label: const Text('Search'),
         ),

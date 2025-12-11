@@ -52,6 +52,58 @@ class ClerkPaymentService {
     return TicketInfo.fromLookupApi(data);
   }
 
+  Future<List<TicketInfo>> getRecentUnpaidTickets() async {
+    final token = await _getToken();
+    final uri = Uri.parse('$apiBaseUrl/clerk/payments/unpaid');
+
+    final res = await _client.get(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (kDebugMode) {
+      debugPrint('UNPAID => ${res.statusCode} ${res.body}');
+    }
+
+    if (res.statusCode >= 400) {
+      throw ApiException('Failed to load unpaid tickets. (${res.statusCode})');
+    }
+
+    final List<dynamic> list = jsonDecode(res.body) as List<dynamic>;
+    return list
+        .map((e) => TicketInfo.fromTicketApi(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  Future<List<TicketInfo>> getRecentPaidTickets() async {
+    final token = await _getToken();
+    final uri = Uri.parse('$apiBaseUrl/clerk/payments/history');
+
+    final res = await _client.get(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (kDebugMode) {
+      debugPrint('PAID-HIST => ${res.statusCode} ${res.body}');
+    }
+
+    if (res.statusCode >= 400) {
+      throw ApiException('Failed to load paid tickets. (${res.statusCode})');
+    }
+
+    final List<dynamic> list = jsonDecode(res.body) as List<dynamic>;
+    return list
+        .map((e) => TicketInfo.fromTicketApi(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
   Future<TicketInfo> recordPayment({
     required TicketInfo ticket,
     required String receiptNo,
