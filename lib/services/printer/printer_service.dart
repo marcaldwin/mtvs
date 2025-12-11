@@ -134,8 +134,20 @@ class PrinterService {
 
       _show(context, 'Printer connected: $_deviceName');
       return true;
+      _show(context, 'Printer connected: $_deviceName');
+      return true;
     } catch (e) {
-      _show(context, 'Printer error: $e');
+      String msg = 'Printer error: $e';
+
+      // 🔹 User-friendly error mapping
+      final str = e.toString();
+      if (str.contains('Location services are required') || str.contains('Location services are disabled')) {
+        msg = 'Please enable Location/GPS to scan for printers.';
+      } else if (str.contains('Bluetooth is turned off') || str.contains('BluetoothAdapterState')) {
+         msg = 'Please turn on Bluetooth.';
+      }
+
+      _show(context, msg);
       return false;
     }
   }
