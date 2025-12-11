@@ -21,13 +21,16 @@ class ClerkPaymentController extends Controller
             'control_no' => ['required', 'string'],
         ]);
 
-        $ticket = Ticket::with(['violator', 'payments' => function ($q) {
-            $q->orderByDesc('paid_at');
-        }])
+        $ticket = Ticket::with([
+            'violator',
+            'payments' => function ($q) {
+                $q->orderByDesc('paid_at');
+            }
+        ])
             ->where('control_no', $validated['control_no'])
             ->first();
 
-        if (! $ticket) {
+        if (!$ticket) {
             return response()->json([
                 'message' => 'Ticket not found.',
             ], 404);
@@ -40,9 +43,9 @@ class ClerkPaymentController extends Controller
         $outstanding = max($ticket->total_amount - $paid, 0);
 
         return response()->json([
-            'ticket'             => $ticket,
-            'violator'           => $ticket->violator,
-            'payments'           => $ticket->payments,
+            'ticket' => $ticket,
+            'violator' => $ticket->violator,
+            'payments' => $ticket->payments,
             'outstanding_amount' => (float) $outstanding,
         ]);
     }
@@ -55,10 +58,10 @@ class ClerkPaymentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'ticket_id'  => ['required', 'exists:tickets,id'],
-            'amount'     => ['required', 'numeric', 'min:0.01'],
+            'ticket_id' => ['required', 'exists:tickets,id'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
             'receipt_no' => ['required', 'string', 'max:255'],
-            'remarks'    => ['nullable', 'string', 'max:255'],
+            'remarks' => ['nullable', 'string', 'max:255'],
         ]);
 
         $user = $request->user();
@@ -81,13 +84,13 @@ class ClerkPaymentController extends Controller
 
             /** @var \App\Models\Payment $payment */
             $payment = Payment::create([
-                'ticket_id'   => $ticket->id,
+                'ticket_id' => $ticket->id,
                 'recorded_by' => $user?->id,
-                'amount'      => $validated['amount'],
-                'receipt_no'  => $validated['receipt_no'],
-                'paid_at'     => now(),
-                'status'      => 'recorded',
-                'remarks'     => $validated['remarks'] ?? null,
+                'amount' => $validated['amount'],
+                'receipt_no' => $validated['receipt_no'],
+                'paid_at' => now(),
+                'status' => 'recorded',
+                'remarks' => $validated['remarks'] ?? null,
             ]);
 
             if ($newTotalPaid >= $ticket->total_amount - 0.01) {
@@ -100,15 +103,26 @@ class ClerkPaymentController extends Controller
 
         /** @var \App\Models\Ticket $ticket */
         /** @var \App\Models\Payment $payment */
-        $ticket  = $result['ticket'];
+        $ticket = $result['ticket'];
         $payment = $result['payment'];
 
         $ticket->load('violator', 'payments');
 
-        return response()->json([
-            'message' => 'Payment recorded successfully.',
-            'payment' => $payment,
-            'ticket'  => $ticket,
-        ], 201);
+    }
+
+    /**
+     * GET /api/clerk/payments/unpaid
+     *
+     * Returns recent unpaid tickets (limit 50).
+     */
+    public function recentUnpaid(Request $request)
+    {
+        $tickets = Ticket::with('violator')
+            ->where('status', 'unpaid')
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get();
+
+        return response()->json($tickets);
     }
 }

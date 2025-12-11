@@ -65,6 +65,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Clerk payments
     Route::get('clerk/payments/ticket-lookup', [ClerkPaymentController::class, 'lookupTicket']);
+    Route::get('clerk/payments/unpaid', [ClerkPaymentController::class, 'recentUnpaid']);
     Route::post('clerk/payments', [ClerkPaymentController::class, 'store']);
 
     // Admin reports
