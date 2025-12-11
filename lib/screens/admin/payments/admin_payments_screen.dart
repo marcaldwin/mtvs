@@ -102,27 +102,25 @@ class _AdminPaymentsScreenState extends State<AdminPaymentsScreen> {
   double get _todayTotal {
     final now = DateTime.now();
     return _payments
-        .where(
-          (p) =>
-              p.status == 'recorded' &&
-              p.paidAt != null &&
-              p.paidAt!.year == now.year &&
-              p.paidAt!.month == now.month &&
-              p.paidAt!.day == now.day,
-        )
+        .where((p) {
+          if (p.status != 'recorded' || p.paidAt == null) return false;
+          final date = p.paidAt!.toLocal();
+          return date.year == now.year &&
+              date.month == now.month &&
+              date.day == now.day;
+        })
         .fold(0.0, (sum, p) => sum + p.amount);
   }
 
   double get _monthTotal {
     final now = DateTime.now();
     return _payments
-        .where(
-          (p) =>
-              p.status == 'recorded' &&
-              p.paidAt != null &&
-              p.paidAt!.year == now.year &&
-              p.paidAt!.month == now.month,
-        )
+        .where((p) {
+          if (p.status != 'recorded' || p.paidAt == null) return false;
+          final date = p.paidAt!.toLocal();
+          return date.year == now.year &&
+              date.month == now.month;
+        })
         .fold(0.0, (sum, p) => sum + p.amount);
   }
 
