@@ -53,6 +53,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('admin/users', [AdminUserController::class, 'index']);
     Route::get('admin/users/{id}', [AdminUserController::class, 'show']);
     Route::patch('admin/users/{id}', [AdminUserController::class, 'update']);
+    Route::delete('admin/users/{id}', [AdminUserController::class, 'destroy']);
 
     // Admin violations
     Route::get('admin/violations', [ViolationController::class, 'adminIndex']);

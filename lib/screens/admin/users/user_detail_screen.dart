@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'models/admin_user.dart'; // same folder as this screen
+import 'providers/admin_users_provider.dart';
 
 class UserDetailScreen extends StatelessWidget {
   final AdminUser user;
@@ -60,6 +62,7 @@ class UserDetailScreen extends StatelessWidget {
                             'employee id: ${user.employeeId}',
                             Colors.tealAccent,
                           ),
+                         _pill('role: ${user.role}', Colors.orangeAccent),
                       ],
                     ),
                   ],
@@ -89,11 +92,7 @@ class UserDetailScreen extends StatelessWidget {
           const SizedBox(height: 12),
 
           FilledButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Edit user tapped')));
-            },
+            onPressed: () => _showEditDialog(context),
             icon: const Icon(Icons.edit),
             label: const Text('Edit User'),
           ),
@@ -101,15 +100,162 @@ class UserDetailScreen extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Reset password tapped')),
+                const SnackBar(content: Text('Reset password not implemented yet')),
               );
             },
             icon: const Icon(Icons.lock_reset_rounded),
             label: const Text('Reset Password'),
           ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+              side: const BorderSide(color: Colors.redAccent),
+            ),
+            onPressed: () => _confirmDelete(context),
+            icon: const Icon(Icons.delete),
+            label: const Text('Delete User'),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _showEditDialog(BuildContext context) async {
+    final nameCtrl = TextEditingController(text: user.fullName ?? user.name);
+    final emailCtrl = TextEditingController(text: user.email);
+    String roleStart = user.role.toLowerCase();
+    // basic sanitization to match dropdown items
+    if (!['admin', 'enforcer', 'cashier'].contains(roleStart)) {
+      roleStart = 'admin'; 
+    }
+    String role = roleStart;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit User'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Full Name'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailCtrl,
+                decoration: const InputDecoration(labelText: 'Email'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: role,
+                decoration: const InputDecoration(labelText: 'Role'),
+                items: const [
+                  DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                  DropdownMenuItem(value: 'enforcer', child: Text('Enforcer')),
+                  DropdownMenuItem(value: 'cashier', child: Text('Cashier')),
+                ],
+                onChanged: (v) {
+                  if (v != null) role = v;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _updateUser(
+                context, 
+                nameCtrl.text.trim(), 
+                emailCtrl.text.trim(), 
+                role,
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateUser(
+    BuildContext context, 
+    String name, 
+    String email, 
+    String role,
+  ) async {
+    final provider = context.read<AdminUsersProvider>();
+    try {
+      await provider.updateUser(user.id.toString(), {
+        'full_name': name,
+        'email': email,
+        'role': role,
+      });
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User updated successfully')),
+        );
+        Navigator.pop(context); // Go back to list to see changes
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Update failed: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete User'),
+        content: Text('Are you sure you want to delete "${user.name}"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _deleteUser(context);
+    }
+  }
+
+  Future<void> _deleteUser(BuildContext context) async {
+    final provider = context.read<AdminUsersProvider>();
+    try {
+      await provider.deleteUser(user.id.toString());
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User deleted successfully')),
+        );
+        Navigator.pop(context); // Return to list
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Deletion failed: $e')),
+        );
+      }
+    }
   }
 
   static Widget _pill(String text, Color color) {

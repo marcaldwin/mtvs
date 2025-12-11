@@ -197,4 +197,25 @@ class AdminUserController extends Controller
             ], 500);
         }
     }
+    /**
+     * DELETE /api/admin/users/{id}
+     */
+    public function destroy(string $id)
+    {
+        $user = User::findOrFail($id);
+
+        // Prevent deleting self
+        if (auth()->id() == $user->id) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Cannot delete your own account.',
+            ], 403);
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'message' => 'User deleted successfully.',
+        ]);
+    }
 }

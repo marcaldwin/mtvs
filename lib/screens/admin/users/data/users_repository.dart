@@ -76,4 +76,17 @@ class UsersRepository {
       return <AdminUser>[];
     }
   }
+  Future<AdminUser> updateUser(String id, Map<String, dynamic> data) async {
+    final res = await _dio.patch('/admin/users/$id', data: data);
+    final body = res.data;
+    if (body is Map && body['data'] is Map) {
+      return AdminUser.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+    }
+    // Fallback if structure differs
+    return AdminUser.fromJson(Map<String, dynamic>.from(body as Map));
+  }
+
+  Future<void> deleteUser(String id) async {
+    await _dio.delete('/admin/users/$id');
+  }
 }

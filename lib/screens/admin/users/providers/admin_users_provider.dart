@@ -81,4 +81,27 @@ class AdminUsersProvider extends ChangeNotifier {
 
   // compatibility alias used by your TextField onChanged
   void setQuery(String q) => setSearch(q);
+
+  Future<void> updateUser(String id, Map<String, dynamic> data) async {
+    try {
+      final updated = await repo.updateUser(id, data);
+      final index = users.indexWhere((u) => u.id.toString() == id);
+      if (index != -1) {
+        users[index] = updated;
+        notifyListeners();
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteUser(String id) async {
+    try {
+      await repo.deleteUser(id);
+      users.removeWhere((u) => u.id.toString() == id);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
