@@ -108,6 +108,7 @@ class ClerkPaymentController extends Controller
 
         $ticket->load('violator', 'payments');
 
+        return response()->json($ticket);
     }
 
     /**
