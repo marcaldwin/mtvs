@@ -171,135 +171,108 @@ class PrinterService {
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);
 
-    final List<int> bytes = [];
-
-    // 🔹 1. LOGO
+    // 🔹 1. LOGO (Send first, then delay)
     try {
       final ByteData data = await rootBundle.load('assets/images/tmeu_logo.png');
       final Uint8List imgBytes = data.buffer.asUint8List();
       final img.Image? originalImage = img.decodeImage(imgBytes);
 
       if (originalImage != null) {
-        // Resize for 58mm printer (max width ~384 px, safe zone ~370)
-        // Let's make it smaller to fit nicely, e.g., 150px wide
+        // Reduced width to 140 for safety
         final img.Image resized = img.copyResize(originalImage, width: 140);
-        bytes.addAll(generator.image(resized));
-        bytes.addAll(generator.feed(1));
+        final logoBytes = generator.image(resized);
+        
+        // Print logo immediately and wait substantially
+        await _writeEscPos(Uint8List.fromList(logoBytes));
+        await Future.delayed(const Duration(milliseconds: 500)); 
       }
     } catch (e) {
       debugPrint('Error printing logo: $e');
     }
 
-    // 🔹 2. HEADER
-    bytes.addAll(
-      generator.text(
-        'Republic of the Philippines\n'
-        'Province of Davao de Oro\n'
-        'MUNICIPALITY OF NABUNTURAN\n'
-        'OFFICE OF THE MAYOR',
-        styles: const PosStyles(
-          bold: true,
-          align: PosAlign.center,
-          height: PosTextSize.size1,
-          width: PosTextSize.size1,
-        ),
-      ),
-    );
-    bytes.addAll(generator.feed(1));
+    // 🔹 2. TEXT CONTENT
+    final List<int> bs = [];
 
-    bytes.addAll(
-      generator.text(
-        'CITATION TICKET',
-        styles: const PosStyles(
-          bold: true,
-          align: PosAlign.center,
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-        ),
-      ),
-    );
-    bytes.addAll(
-      generator.text(
-        'NEW NORMAL ORDINANCE NO. 06, SERIES OF 2020',
-        styles: const PosStyles(
-          align: PosAlign.center,
-          fontType: PosFontType.fontB, 
-        ),
-      ),
-    );
+    // Header
+    bs.addAll(generator.text(
+      'Republic of the Philippines\n'
+      'Province of Davao de Oro\n'
+      'MUNICIPALITY OF NABUNTURAN\n'
+      'OFFICE OF THE MAYOR',
+      styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size1),
+    ));
+    bs.addAll(generator.feed(1));
+    bs.addAll(generator.text('CITATION TICKET', styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2)));
+    bs.addAll(generator.text('NEW NORMAL ORDINANCE NO. 06', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
+    bs.addAll(generator.hr());
 
-    bytes.addAll(generator.hr());
+    // Row 1: Name + Age
+    // 58mm printer ~32 chars wide usually
+    bs.addAll(generator.row([
+      PosColumn(text: 'NAME: $violatorName', width: 9, styles: const PosStyles(fontType: PosFontType.fontB)),
+      PosColumn(text: 'AGE: ${age ?? ''}', width: 3, styles: const PosStyles(align: PosAlign.right, fontType: PosFontType.fontB)),
+    ]));
 
-    // 🔹 3. DETAILS
-    // Using simple text for fields to ensure alignment on narrow paper
-    bytes.addAll(generator.text('CITATION #: $controlNo', styles: const PosStyles(bold: true)));
-    bytes.addAll(generator.text('NAME    : $violatorName'));
-    if (age != null) bytes.addAll(generator.text('AGE     : $age'));
-    if (sex != null) bytes.addAll(generator.text('SEX     : $sex'));
-    if (address != null) bytes.addAll(generator.text('ADDRESS : $address'));
+    // Row 2: Address + Sex
+    bs.addAll(generator.row([
+      PosColumn(text: 'ADDRESS: ${address ?? ''}', width: 8, styles: const PosStyles(fontType: PosFontType.fontB)),
+      PosColumn(text: 'SEX: ${sex ?? ''}', width: 4, styles: const PosStyles(align: PosAlign.right, fontType: PosFontType.fontB)),
+    ]));
+
+    // Row 3: Date
+    bs.addAll(generator.text('DATE/TIME: ${DateTime.now().toString().substring(0, 16)}', styles: const PosStyles(fontType: PosFontType.fontB)));
+
+    // Row 4: Violation List (Reformatted)
+    bs.addAll(generator.hr());
+    bs.addAll(generator.text('VIOLATIONS:', styles: const PosStyles(bold: true, underline: true)));
     
-    bytes.addAll(generator.text('DATE/TIME: ${DateTime.now().toString().substring(0, 16)}'));
-    bytes.addAll(generator.text('CHOKEPOINT: $chokepoint'));
+    // Formatting content to look like checkboxes
+    // A. NO MASK
+    bs.addAll(generator.row([
+      PosColumn(text: '[ ] A. FOR NOT WEARING FACE MASK', width: 12),
+    ]));
+    // B. DISTANCING
+    bs.addAll(generator.row([
+      PosColumn(text: '[ ] B. NOT PRACTICING DISTANCING', width: 12),
+    ]));
+    // C. CURFEW
+    bs.addAll(generator.row([
+      PosColumn(text: '[ ] C. VIOLATION OF CURFEW', width: 12),
+    ]));
+    // D. OTHERS
+    bs.addAll(generator.row([
+      PosColumn(text: '[ ] D. OTHER ACTS', width: 12),
+    ]));
+    // E. BUSINESS
+    bs.addAll(generator.row([
+      PosColumn(text: '[ ] E. BUSINESS ESTABLISHMENTS', width: 12),
+    ]));
 
-    bytes.addAll(generator.hr());
-
-    // 🔹 4. VIOLATION SECTION
-    bytes.addAll(
-      generator.text(
-        'VIOLATION & PENALTY:',
-        styles: const PosStyles(bold: true, underline: true),
-      ),
-    );
-    bytes.addAll(generator.feed(1));
-
-    // Print the specific violation recorded
-    bytes.addAll(generator.text(violation));
-    bytes.addAll(
-      generator.row([
-        PosColumn(text: 'Penalty:', width: 6),
-        PosColumn(
-          text: 'P $fine',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.right, bold: true),
-        ),
-      ]),
-    );
-
-    bytes.addAll(generator.feed(2));
-    bytes.addAll(generator.hr(ch: '_'));
-
-    // 🔹 5. FOOTER / SIGNATURES
-    bytes.addAll(generator.feed(1));
+    bs.addAll(generator.feed(1));
+    bs.addAll(generator.text('ACTUAL VIOLATION:', styles: const PosStyles(bold: true)));
+    bs.addAll(generator.text('> $violation')); // The one selected
+    bs.addAll(generator.text('control #: $controlNo', styles: const PosStyles(bold: true)));
     
-    // Apprehending Officer
-    bytes.addAll(
-      generator.text(
-        issuedBy.toUpperCase(),
-        styles: const PosStyles(align: PosAlign.center, underline: true),
-      ),
-    );
-    bytes.addAll(
-      generator.text(
-        'Apprehending Officer',
-        styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB),
-      ),
-    );
+    bs.addAll(generator.feed(1));
+    bs.addAll(generator.row([
+      PosColumn(text: 'TOTAL PENALTY:', width: 6, styles: const PosStyles(bold: true)),
+      PosColumn(text: 'P $fine', width: 6, styles: const PosStyles(bold: true, align: PosAlign.right)),
+    ]));
+
+    bs.addAll(generator.hr(ch: '_'));
+    bs.addAll(generator.feed(2));
     
-    bytes.addAll(generator.feed(2));
-    bytes.addAll(generator.text('____________________________', styles: const PosStyles(align: PosAlign.center)));
-    bytes.addAll(
-      generator.text(
-        'Signature of Violator',
-        styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB),
-      ),
-    );
+    // Signatures
+    bs.addAll(generator.text(issuedBy.toUpperCase(), styles: const PosStyles(align: PosAlign.center, underline: true)));
+    bs.addAll(generator.text('Apprehending Officer', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
+    bs.addAll(generator.feed(2));
+    bs.addAll(generator.text('____________________________', styles: const PosStyles(align: PosAlign.center)));
+    bs.addAll(generator.text('Signature of Violator', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
 
-    bytes.addAll(generator.feed(1));
-    bytes.addAll(generator.text('No. $controlNo', styles: const PosStyles(align: PosAlign.right, bold: true)));
+    bs.addAll(generator.feed(3));
+    bs.addAll(generator.cut());
 
-    bytes.addAll(generator.cut());
-
-    await _writeEscPos(Uint8List.fromList(bytes));
+    await _writeEscPos(Uint8List.fromList(bs));
   }
 
   /// Simple sample print to test connection
@@ -332,7 +305,7 @@ class PrinterService {
 
   Future<void> _writeEscPos(Uint8List data) async {
     if (_writeChar == null) throw Exception('Printer characteristic missing');
-    const int chunk = 180;
+    const int chunk = 100; // Smaller chunks for safety
     for (int i = 0; i < data.length; i += chunk) {
       final part = data.sublist(
         i,
@@ -342,7 +315,8 @@ class PrinterService {
         part,
         withoutResponse: _writeChar!.properties.writeWithoutResponse,
       );
-      await Future.delayed(const Duration(milliseconds: 30));
+      // Wait longer between chunks for cheap printers
+      await Future.delayed(const Duration(milliseconds: 60));
     }
   }
 
