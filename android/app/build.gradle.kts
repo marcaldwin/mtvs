@@ -9,7 +9,7 @@ android {
     namespace = "com.example.mtvts_app"
 
     // SDK / NDK
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "29.0.13599879"
 
     defaultConfig {

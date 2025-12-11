@@ -88,12 +88,14 @@ class TicketInfo {
 }
 
 class PaymentHistory {
+  final int id;
   final double amount;
   final String receiptNo;
   final String status;
   final DateTime? paidAt;
 
   const PaymentHistory({
+    required this.id,
     required this.amount,
     required this.receiptNo,
     required this.status,
@@ -108,6 +110,7 @@ class PaymentHistory {
         : DateTime.tryParse(paidAtStr);
 
     return PaymentHistory(
+      id: (json['id'] as num?)?.toInt() ?? 0,
       amount: amount,
       receiptNo: json['receipt_no'] as String? ?? '',
       status: json['status'] as String? ?? 'recorded',

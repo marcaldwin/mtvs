@@ -234,7 +234,7 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen>
       setState(() => _error = e.message);
     } on ApiException catch (e) {
       setState(() => _error = e.message);
-    } catch (_) {
+    } catch (e) {
       setState(() {
         _error = 'Error: $e';
       });
