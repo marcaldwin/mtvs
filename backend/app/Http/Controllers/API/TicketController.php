@@ -67,7 +67,7 @@ class TicketController extends Controller
                     'violation_id' => $primaryViolationId,
                     'fine_amount' => $totalFine,
                     'additional_fees' => $additionalFees,
-                    // 'total_amount'          => $totalAmount, // Computed column, do not write manually
+                    'total_amount' => $totalAmount,
                     'place_of_apprehension' => $data['place_of_apprehension'] ?? null,
                     'status' => 'unpaid',
                     'apprehended_at' => now(),
