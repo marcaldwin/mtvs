@@ -255,4 +255,92 @@ class _AdminPaymentsScreenState extends State<AdminPaymentsScreen> {
       ),
     );
   }
+
+  Widget _buildFilters(BuildContext context) {
+    final rangeLabel = _dateRange == null
+        ? 'All time'
+        : '${DateFormat('MMM d').format(_dateRange!.start)} - '
+              '${DateFormat('MMM d, y').format(_dateRange!.end)}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Search box
+        TextField(
+          controller: _searchController,
+          onChanged: (_) => setState(() {}),
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Search receipt, ticket control no, or violator',
+            hintStyle: const TextStyle(color: Colors.white54),
+            prefixIcon: const Icon(Icons.search, color: Colors.white70),
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.05),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 10,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(999),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        Row(
+          children: [
+            // Date range
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final now = DateTime.now();
+                  final picked = await showDateRangePicker(
+                    context: context,
+                    firstDate: DateTime(now.year - 2),
+                    lastDate: DateTime(now.year + 1),
+                    initialDateRange: _dateRange,
+                    helpText: 'Filter by payment date',
+                  );
+
+                  if (picked != null) {
+                    setState(() {
+                      _dateRange = picked;
+                    });
+                  }
+                },
+                icon: const Icon(Icons.date_range, size: 18),
+                label: Text(rangeLabel),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Status dropdown
+            SizedBox(
+              width: 150,
+              child: DropdownButtonFormField<String>(
+                value: _statusFilter,
+                dropdownColor: const Color(0xFF111827),
+                decoration: const InputDecoration(
+                  isDense: true,
+                  labelText: 'Status',
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'all', child: Text('All')),
+                  DropdownMenuItem(value: 'recorded', child: Text('Recorded')),
+                  DropdownMenuItem(value: 'reversed', child: Text('Reversed')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _statusFilter = value);
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }

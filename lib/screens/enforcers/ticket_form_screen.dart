@@ -216,10 +216,8 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     final chokepoint = op.chokepoint ?? '';
 
     // 🔹 1) ENSURE PRINTER IS CONNECTED BEFORE SAVING
-    // final printer = context.read<PrinterService>();
-    // TEMPORARY: Bypass printer check for testing
-    // final printerOk = await printer.ensureConnected(context);
-    // const printerOk = true; 
+    final printer = context.read<PrinterService>();
+    final printerOk = await printer.ensureConnected(context); 
 
     // if (!printerOk) {
     //   // Do NOT save ticket if printer is not ready
@@ -316,12 +314,10 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
 
       // 🔹 4) API SUCCESS → TRY TO PRINT (WITH CONTROL NO + ISSUER)
       bool printed = false;
-      // TEMPORARY: Skip printing for testing
-      /*
       try {
         final violationSummary = _selectedViolations
             .map((v) => v.name)
-            .join(', ');
+            .join(', \n');
 
         final fineText = _fine.text.trim().isEmpty ? '0.00' : _fine.text.trim();
 
@@ -342,8 +338,6 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
           SnackBar(content: Text('Ticket saved, but printer error: $e')),
         );
       }
-      */
-      printed = true; // Pretend it printed so we get the success message
 
       // 🔹 5) FEEDBACK + REFRESH STATS + CLOSE
       if (printed) {
@@ -404,8 +398,8 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.save),
-              label: Text(_submitting ? 'Saving...' : 'Save (Test Mode)'),
+                  : const Icon(Icons.print),
+              label: Text(_submitting ? 'Printing...' : 'Save & Print'),
               onPressed: _submitting
                   ? null
                   : () {
