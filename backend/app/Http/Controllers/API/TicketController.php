@@ -16,13 +16,13 @@ class TicketController extends Controller
         $user = $request->user(); // enforcer issuing the ticket
 
         $data = $request->validate([
-            'violator_name'         => 'required|string|max:255',
-            'drivers_license'       => 'required|string|max:255',
-            'plate_no'              => 'nullable|string|max:255',
+            'violator_name' => 'required|string|max:255',
+            'drivers_license' => 'required|string|max:255',
+            'plate_no' => 'nullable|string|max:255',
             'place_of_apprehension' => 'nullable|string|max:255',
 
             // 🔹 Multi-violations
-            'violations'                => 'required|array|min:1',
+            'violations' => 'required|array|min:1',
             'violations.*.violation_id' => 'required|integer|exists:violations,id',
         ]);
 
@@ -34,10 +34,10 @@ class TicketController extends Controller
                         'drivers_license' => $data['drivers_license'],
                     ],
                     [
-                        'name'     => $data['violator_name'],
-                        'address'  => null,
+                        'name' => $data['violator_name'],
+                        'address' => null,
                         'plate_no' => $data['plate_no'] ?? null,
-                        'kd_no'    => null,
+                        'kd_no' => null,
                     ]
                 );
 
@@ -47,14 +47,14 @@ class TicketController extends Controller
 
                     return [
                         'violation_id' => $violation->id,
-                        'fine_amount'  => $violation->fine, // from violations table
-                        'remarks'      => null,
+                        'fine_amount' => $violation->fine, // from violations table
+                        'remarks' => null,
                     ];
                 });
 
-                $totalFine      = (float) $violationItems->sum('fine_amount');
+                $totalFine = (float) $violationItems->sum('fine_amount');
                 $additionalFees = 0.0;
-                $totalAmount    = $totalFine + $additionalFees;
+                $totalAmount = $totalFine + $additionalFees;
 
                 // Use first violation as "primary" for tickets.violation_id
                 $primaryViolationId = $violationItems->first()['violation_id'];
@@ -62,26 +62,26 @@ class TicketController extends Controller
                 // 3) Create ticket main record
                 // ❌ no control_no here – model will auto-generate
                 $ticket = Ticket::create([
-                    'violator_id'           => $violator->id,
-                    'enforcer_id'           => $user->id,
-                    'violation_id'          => $primaryViolationId,
-                    'fine_amount'           => $totalFine,
-                    'additional_fees'       => $additionalFees,
-                    'total_amount'          => $totalAmount,
+                    'violator_id' => $violator->id,
+                    'enforcer_id' => $user->id,
+                    'violation_id' => $primaryViolationId,
+                    'fine_amount' => $totalFine,
+                    'additional_fees' => $additionalFees,
+                    // 'total_amount'          => $totalAmount, // Computed column, do not write manually
                     'place_of_apprehension' => $data['place_of_apprehension'] ?? null,
-                    'status'                => 'unpaid',
-                    // 'apprehended_at' => now(), // optional if not using DB default
+                    'status' => 'unpaid',
+                    'apprehended_at' => now(),
                 ]);
 
                 // 4) Insert into ticket_violation pivot
                 foreach ($violationItems as $item) {
                     DB::table('ticket_violation')->insert([
-                        'ticket_id'    => $ticket->id,
+                        'ticket_id' => $ticket->id,
                         'violation_id' => $item['violation_id'],
-                        'fine_amount'  => $item['fine_amount'],
-                        'remarks'      => $item['remarks'],
-                        'created_at'   => now(),
-                        'updated_at'   => now(),
+                        'fine_amount' => $item['fine_amount'],
+                        'remarks' => $item['remarks'],
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
                 }
 
@@ -91,15 +91,15 @@ class TicketController extends Controller
 
             return response()->json([
                 'message' => 'Ticket created successfully.',
-                'ticket'  => $ticket,
+                'ticket' => $ticket,
             ], 201);
         } catch (\Throwable $e) {
             // 👇 instead of a blind 500, return the real error
             return response()->json([
                 'message' => 'Failed to create ticket',
-                'error'   => $e->getMessage(),
-                'file'    => $e->getFile(),
-                'line'    => $e->getLine(),
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ], 500);
         }
     }
