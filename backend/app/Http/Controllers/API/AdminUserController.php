@@ -11,8 +11,33 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Database\Eloquent\Builder;
 
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
+
 class AdminUserController extends Controller
 {
+    // ... (existing code)
+
+    /**
+     * POST /api/admin/users/{id}/reset-password
+     */
+    public function resetPassword(string $id)
+    {
+        $user = User::findOrFail($id);
+
+        // Generate random password
+        $plainPassword = Str::random(8); // e.g. a8B2x9Lm
+
+        $user->password = Hash::make($plainPassword);
+        $user->save();
+
+        return response()->json([
+            'message' => 'Password reset successfully.',
+            'password' => $plainPassword,
+        ]);
+    }
+
+
     /**
      * GET /api/admin/users?q=&role=&page=&per_page=
      */

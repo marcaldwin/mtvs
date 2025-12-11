@@ -89,4 +89,13 @@ class UsersRepository {
   Future<void> deleteUser(String id) async {
     await _dio.delete('/admin/users/$id');
   }
+
+  Future<String> resetPassword(String id) async {
+    final res = await _dio.post('/admin/users/$id/reset-password');
+    final body = res.data;
+    if (body is Map && body['password'] != null) {
+      return body['password'].toString();
+    }
+    return '';
+  }
 }

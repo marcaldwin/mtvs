@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'models/admin_user.dart'; // same folder as this screen
+import 'models/admin_user.dart';
 import 'providers/admin_users_provider.dart';
 
 class UserDetailScreen extends StatelessWidget {
@@ -98,11 +98,7 @@ class UserDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Reset password not implemented yet')),
-              );
-            },
+            onPressed: () => _confirmResetPassword(context),
             icon: const Icon(Icons.lock_reset_rounded),
             label: const Text('Reset Password'),
           ),
@@ -253,6 +249,77 @@ class UserDetailScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Deletion failed: $e')),
+        );
+      }
+    }
+  }
+  
+  Future<void> _confirmResetPassword(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset Password'),
+        content: Text(
+          'Are you sure you want to reset the password for "${user.name}"? '
+          'A new random password will be generated and displayed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    if (!context.mounted) return;
+    final provider = context.read<AdminUsersProvider>();
+    
+    try {
+      final newPassword = await provider.resetPassword(user.id.toString());
+      if (context.mounted) {
+         await showDialog(
+           context: context,
+           barrierDismissible: false,
+           builder: (ctx) => AlertDialog(
+             title: const Text('Password Reset Successful'),
+             content: Column(
+               mainAxisSize: MainAxisSize.min,
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 const Text('The new password is:'),
+                 const SizedBox(height: 12),
+                 SelectableText(
+                    newPassword,
+                    style: const TextStyle(
+                      fontSize: 24, 
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent
+                    ),
+                 ),
+                 const SizedBox(height: 12),
+                 const Text('Please copy and share this with the user immediately. It will not be shown again.'),
+               ],
+             ),
+             actions: [
+               FilledButton(
+                 onPressed: () => Navigator.pop(ctx),
+                 child: const Text('Done'),
+               ),
+             ],
+           ),
+         );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Reset password failed: $e')),
         );
       }
     }
