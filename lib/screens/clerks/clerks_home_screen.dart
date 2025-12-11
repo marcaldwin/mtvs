@@ -236,7 +236,7 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen>
       setState(() => _error = e.message);
     } catch (_) {
       setState(() {
-        _error = 'Unable to contact server. Please try again.';
+        _error = 'Error: $e';
       });
     } finally {
       setState(() {
@@ -330,10 +330,60 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen>
              ),
 
           const SizedBox(height: 16),
-          PaymentHistorySection(payments: _ticket!.payments),
+          const SizedBox(height: 16),
+          PaymentHistorySection(
+            payments: _ticket!.payments,
+            onVoidPayment: _handleVoidPayment,
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _handleVoidPayment(int paymentId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Void Payment'),
+        content: const Text(
+            'Are you sure you want to remove this payment? This will mark it as REVERSED.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Void Payment'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _loadingTicket = true);
+    try {
+      await _service.voidPayment(paymentId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Payment reversed successfully.')),
+        );
+      }
+      // Refresh ticket details
+      _lookupTicket(_ticket!.controlNo);
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      if (mounted) {
+         setState(() => _error = 'Error voiding payment: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loadingTicket = false);
+      }
+    }
   }
 
   /// Shows the TabBar + TabBarView for lists

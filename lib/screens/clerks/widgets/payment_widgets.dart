@@ -227,8 +227,13 @@ class PaymentFormCard extends StatelessWidget {
 
 class PaymentHistorySection extends StatelessWidget {
   final List<PaymentHistory> payments;
+  final Function(int) onVoidPayment;
 
-  const PaymentHistorySection({super.key, required this.payments});
+  const PaymentHistorySection({
+    super.key,
+    required this.payments,
+    required this.onVoidPayment,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -258,7 +263,7 @@ class PaymentHistorySection extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           for (final p in payments) ...[
-            _PaymentHistoryTile(payment: p),
+            _PaymentHistoryTile(payment: p, onVoid: () => onVoidPayment(p.id)),
             const SizedBox(height: 4),
           ],
         ],
@@ -342,8 +347,9 @@ class AmountPill extends StatelessWidget {
 
 class _PaymentHistoryTile extends StatelessWidget {
   final PaymentHistory payment;
+  final VoidCallback onVoid;
 
-  const _PaymentHistoryTile({required this.payment});
+  const _PaymentHistoryTile({required this.payment, required this.onVoid});
 
   @override
   Widget build(BuildContext context) {
@@ -364,6 +370,21 @@ class _PaymentHistoryTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
+        if (!isReversed)
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 18, color: Colors.white54),
+            tooltip: 'Remove',
+            onPressed: onVoid,
+            visualDensity: VisualDensity.compact,
+          )
+        else
+          const Padding(
+            padding: EdgeInsets.only(right: 8.0),
+            child: Text(
+              'REVERSED',
+              style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
+          ),
       ],
     );
   }

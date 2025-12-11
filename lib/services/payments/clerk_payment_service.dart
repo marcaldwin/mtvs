@@ -148,6 +148,30 @@ class ClerkPaymentService {
     final ticketJson = data['ticket'] as Map<String, dynamic>;
     return TicketInfo.fromTicketApi(ticketJson);
   }
+
+  Future<void> voidPayment(int paymentId) async {
+    final token = await _getToken();
+    final uri = Uri.parse('$apiBaseUrl/clerk/payments/$paymentId/void');
+
+    try {
+      final res = await http.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (res.statusCode != 200) {
+        final body = json.decode(res.body);
+        final msg = body['message'] ?? 'Failed to void payment.';
+        throw ApiException(msg);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Network error: $e');
+    }
+  }
 }
 
 class ApiException implements Exception {

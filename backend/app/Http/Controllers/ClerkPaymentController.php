@@ -142,4 +142,45 @@ class ClerkPaymentController extends Controller
 
         return response()->json($tickets);
     }
+    /**
+     * POST /api/clerk/payments/{payment}/void
+     */
+    public function voidPayment(Request $request, string $paymentId)
+    {
+        return DB::transaction(function () use ($paymentId, $request) {
+            /** @var \App\Models\Payment $payment */
+            $payment = Payment::lockForUpdate()->findOrFail($paymentId);
+
+            if ($payment->status === 'reversed') {
+                return response()->json(['message' => 'Payment already reversed.'], 400);
+            }
+
+            // Mark payment reversed
+            $payment->status = 'reversed';
+            // Optional: store who voided it? we rely on logs or add a voided_by column if needed.
+            // For now, simpler is better.
+            $payment->save();
+
+            /** @var \App\Models\Ticket $ticket */
+            $ticket = Ticket::lockForUpdate()->find($payment->ticket_id);
+            if ($ticket) {
+                // Check if ticket was paid, now might be unpaid
+                // Recalculate paid amount ignoring reversed
+                $totalPaid = $ticket->payments()
+                    ->where('status', 'recorded')
+                    ->sum('amount');
+
+                if ($totalPaid < $ticket->total_amount - 0.01) {
+                    $ticket->status = 'unpaid';
+                    $ticket->save();
+                }
+            }
+
+            return response()->json([
+                'message' => 'Payment voided successfully.',
+                'payment' => $payment,
+                'ticket' => $ticket,
+            ]);
+        });
+    }
 }

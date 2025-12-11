@@ -69,6 +69,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('clerk/payments/unpaid', [ClerkPaymentController::class, 'recentUnpaid']);
     Route::get('clerk/payments/history', [ClerkPaymentController::class, 'recentPaid']);
     Route::post('clerk/payments', [ClerkPaymentController::class, 'store']);
+    Route::post('clerk/payments/{payment}/void', [ClerkPaymentController::class, 'voidPayment']);
 
     // Admin reports
     Route::get('admin/reports/overview', [AdminReportsController::class, 'overview']);
