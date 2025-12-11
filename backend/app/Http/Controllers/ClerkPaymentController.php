@@ -125,4 +125,20 @@ class ClerkPaymentController extends Controller
 
         return response()->json($tickets);
     }
+
+    /**
+     * GET /api/clerk/payments/history
+     *
+     * Returns recent paid tickets (limit 50).
+     */
+    public function recentPaid(Request $request)
+    {
+        $tickets = Ticket::with('violator')
+            ->where('status', 'paid')
+            ->orderByDesc('updated_at')
+            ->limit(50)
+            ->get();
+
+        return response()->json($tickets);
+    }
 }
