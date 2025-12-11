@@ -113,16 +113,16 @@ class TicketSummaryCard extends StatelessWidget {
               ),
             ),
           const Divider(height: 16, color: Colors.white12),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               AmountPill(label: 'Total', amount: info.totalAmount, color: onBg),
-              const SizedBox(width: 8),
               AmountPill(
                 label: 'Paid',
                 amount: info.totalPaid,
                 color: Colors.greenAccent,
               ),
-              const SizedBox(width: 8),
               AmountPill(
                 label: 'Outstanding',
                 amount: info.outstandingAmount,
