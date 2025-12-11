@@ -26,8 +26,7 @@ class AdminBanner extends StatelessWidget {
           'Manage users, violations, payments, and reports',
           style: TextStyle(color: Colors.white70),
         ),
-        trailing: Icon(Icons.settings_rounded, color: Colors.white),
-      ),
+        ),
     );
   }
 }
