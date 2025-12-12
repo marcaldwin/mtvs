@@ -171,108 +171,94 @@ class PrinterService {
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);
 
-    // 🔹 1. LOGO (Send first, then delay)
+    // 🔹 1. LOGO
     try {
       final ByteData data = await rootBundle.load('assets/images/tmeu_logo.png');
       final Uint8List imgBytes = data.buffer.asUint8List();
       final img.Image? originalImage = img.decodeImage(imgBytes);
 
       if (originalImage != null) {
-        // Reduced width to 140 for safety
         final img.Image resized = img.copyResize(originalImage, width: 140);
-        final logoBytes = generator.image(resized);
-        
-        // Print logo immediately and wait substantially
-        await _writeEscPos(Uint8List.fromList(logoBytes));
-        await Future.delayed(const Duration(milliseconds: 500)); 
+        await _writeEscPos(Uint8List.fromList(generator.image(resized)));
+        await Future.delayed(const Duration(milliseconds: 1000)); // Big pause after image
       }
     } catch (e) {
       debugPrint('Error printing logo: $e');
     }
 
-    // 🔹 2. TEXT CONTENT
-    final List<int> bs = [];
-
-    // Header
-    bs.addAll(generator.text(
+    // 🔹 2. HEADER
+    final List<int> header = [];
+    header.addAll(generator.text(
       'Republic of the Philippines\n'
       'Province of Davao de Oro\n'
       'MUNICIPALITY OF NABUNTURAN\n'
       'OFFICE OF THE MAYOR',
       styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size1),
     ));
-    bs.addAll(generator.feed(1));
-    bs.addAll(generator.text('CITATION TICKET', styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2)));
-    bs.addAll(generator.text('NEW NORMAL ORDINANCE NO. 06', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
-    bs.addAll(generator.hr());
+    header.addAll(generator.feed(1));
+    header.addAll(generator.text('CITATION TICKET', styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2)));
+    header.addAll(generator.text('NEW NORMAL ORDINANCE NO. 06', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
+    header.addAll(generator.hr());
+    
+    await _writeEscPos(Uint8List.fromList(header));
+    await Future.delayed(const Duration(milliseconds: 500)); 
 
-    // Row 1: Name + Age
-    // 58mm printer ~32 chars wide usually
-    bs.addAll(generator.row([
+    // 🔹 3. DETAILS (Name, Age, Address, Etc)
+    final List<int> details = [];
+    details.addAll(generator.row([
       PosColumn(text: 'NAME: $violatorName', width: 9, styles: const PosStyles(fontType: PosFontType.fontB)),
       PosColumn(text: 'AGE: ${age ?? ''}', width: 3, styles: const PosStyles(align: PosAlign.right, fontType: PosFontType.fontB)),
     ]));
 
-    // Row 2: Address + Sex
-    bs.addAll(generator.row([
+    details.addAll(generator.row([
       PosColumn(text: 'ADDRESS: ${address ?? ''}', width: 8, styles: const PosStyles(fontType: PosFontType.fontB)),
       PosColumn(text: 'SEX: ${sex ?? ''}', width: 4, styles: const PosStyles(align: PosAlign.right, fontType: PosFontType.fontB)),
     ]));
 
-    // Row 3: Date
-    bs.addAll(generator.text('DATE/TIME: ${DateTime.now().toString().substring(0, 16)}', styles: const PosStyles(fontType: PosFontType.fontB)));
-
-    // Row 4: Violation List (Reformatted)
-    bs.addAll(generator.hr());
-    bs.addAll(generator.text('VIOLATIONS:', styles: const PosStyles(bold: true, underline: true)));
+    details.addAll(generator.text('DATE/TIME: ${DateTime.now().toString().substring(0, 16)}', styles: const PosStyles(fontType: PosFontType.fontB)));
+    details.addAll(generator.hr());
     
-    // Formatting content to look like checkboxes
-    // A. NO MASK
-    bs.addAll(generator.row([
-      PosColumn(text: '[ ] A. FOR NOT WEARING FACE MASK', width: 12),
-    ]));
-    // B. DISTANCING
-    bs.addAll(generator.row([
-      PosColumn(text: '[ ] B. NOT PRACTICING DISTANCING', width: 12),
-    ]));
-    // C. CURFEW
-    bs.addAll(generator.row([
-      PosColumn(text: '[ ] C. VIOLATION OF CURFEW', width: 12),
-    ]));
-    // D. OTHERS
-    bs.addAll(generator.row([
-      PosColumn(text: '[ ] D. OTHER ACTS', width: 12),
-    ]));
-    // E. BUSINESS
-    bs.addAll(generator.row([
-      PosColumn(text: '[ ] E. BUSINESS ESTABLISHMENTS', width: 12),
-    ]));
+    await _writeEscPos(Uint8List.fromList(details));
+    await Future.delayed(const Duration(milliseconds: 500));
 
-    bs.addAll(generator.feed(1));
-    bs.addAll(generator.text('ACTUAL VIOLATION:', styles: const PosStyles(bold: true)));
-    bs.addAll(generator.text('> $violation')); // The one selected
-    bs.addAll(generator.text('control #: $controlNo', styles: const PosStyles(bold: true)));
+    // 🔹 4. VIOLATION LIST
+    final List<int> violations = [];
+    violations.addAll(generator.text('VIOLATIONS:', styles: const PosStyles(bold: true, underline: true)));
+    violations.addAll(generator.row([ PosColumn(text: '[ ] A. FOR NOT WEARING FACE MASK', width: 12) ]));
+    violations.addAll(generator.row([ PosColumn(text: '[ ] B. NOT PRACTICING DISTANCING', width: 12) ]));
+    violations.addAll(generator.row([ PosColumn(text: '[ ] C. VIOLATION OF CURFEW', width: 12) ]));
+    violations.addAll(generator.row([ PosColumn(text: '[ ] D. OTHER ACTS', width: 12) ]));
+    violations.addAll(generator.row([ PosColumn(text: '[ ] E. BUSINESS ESTABLISHMENTS', width: 12) ]));
+
+    violations.addAll(generator.feed(1));
+    violations.addAll(generator.text('ACTUAL VIOLATION:', styles: const PosStyles(bold: true)));
+    violations.addAll(generator.text('> $violation')); // The one selected
+    violations.addAll(generator.text('control #: $controlNo', styles: const PosStyles(bold: true)));
     
-    bs.addAll(generator.feed(1));
-    bs.addAll(generator.row([
+    await _writeEscPos(Uint8List.fromList(violations));
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // 🔹 5. FOOTER
+    final List<int> footer = [];
+    footer.addAll(generator.feed(1));
+    footer.addAll(generator.row([
       PosColumn(text: 'TOTAL PENALTY:', width: 6, styles: const PosStyles(bold: true)),
       PosColumn(text: 'P $fine', width: 6, styles: const PosStyles(bold: true, align: PosAlign.right)),
     ]));
 
-    bs.addAll(generator.hr(ch: '_'));
-    bs.addAll(generator.feed(2));
+    footer.addAll(generator.hr(ch: '_'));
+    footer.addAll(generator.feed(2));
     
-    // Signatures
-    bs.addAll(generator.text(issuedBy.toUpperCase(), styles: const PosStyles(align: PosAlign.center, underline: true)));
-    bs.addAll(generator.text('Apprehending Officer', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
-    bs.addAll(generator.feed(2));
-    bs.addAll(generator.text('____________________________', styles: const PosStyles(align: PosAlign.center)));
-    bs.addAll(generator.text('Signature of Violator', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
+    footer.addAll(generator.text(issuedBy.toUpperCase(), styles: const PosStyles(align: PosAlign.center, underline: true)));
+    footer.addAll(generator.text('Apprehending Officer', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
+    footer.addAll(generator.feed(2));
+    footer.addAll(generator.text('____________________________', styles: const PosStyles(align: PosAlign.center)));
+    footer.addAll(generator.text('Signature of Violator', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
 
-    bs.addAll(generator.feed(3));
-    bs.addAll(generator.cut());
+    footer.addAll(generator.feed(3));
+    footer.addAll(generator.cut());
 
-    await _writeEscPos(Uint8List.fromList(bs));
+    await _writeEscPos(Uint8List.fromList(footer));
   }
 
   /// Simple sample print to test connection
