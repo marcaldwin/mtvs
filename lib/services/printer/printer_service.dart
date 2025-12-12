@@ -134,8 +134,6 @@ class PrinterService {
 
       _show(context, 'Printer connected: $_deviceName');
       return true;
-      _show(context, 'Printer connected: $_deviceName');
-      return true;
     } catch (e) {
       String msg = 'Printer error: $e';
 
@@ -171,102 +169,89 @@ class PrinterService {
 
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);
-
-    // 🔹 1. LOGO (DISABLED FOR STABILITY TEST)
-    // try {
-    //   final ByteData data = await rootBundle.load('assets/images/tmeu_logo.png');
-    //   final Uint8List imgBytes = data.buffer.asUint8List();
-    //   final img.Image? originalImage = img.decodeImage(imgBytes);
-
-    //   if (originalImage != null) {
-    //     final img.Image resized = img.copyResize(originalImage, width: 140);
-    //     await _writeEscPos(Uint8List.fromList(generator.image(resized)));
-    //     await Future.delayed(const Duration(milliseconds: 1000));
-    //   }
-    // } catch (e) {
-    //   debugPrint('Error printing logo: $e');
-    // }
-
-    // 🔹 2. HEADER
     final List<int> bytes = [];
+
+    // ---------------------------------------------------------
+    // HEADER
+    // ---------------------------------------------------------
     bytes.addAll(generator.text(
-      'MUNICIPALITY OF KIDAPAWAN\nOFFICE OF THE MAYOR',
+      'MUNICIPALITY OF KIDAPAWAN',
       styles: const PosStyles(bold: true, align: PosAlign.center),
     ));
-    bytes.addAll(generator.feed(1));
-    bytes.addAll(generator.text('CITATION TICKET', styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2)));
-    bytes.addAll(generator.feed(1));
-    
-    // 🔹 3. VIOLATOR INFO (Left-Right Split)
-    bytes.addAll(generator.text('VIOLATOR INFO', styles: const PosStyles(bold: true, align: PosAlign.left)));
-    
-    // Name
-    bytes.addAll(generator.row([
-      PosColumn(text: 'Name', width: 4),
-      PosColumn(text: violatorName, width: 8, styles: const PosStyles(align: PosAlign.right, bold: true)),
-    ]));
-    
-    // License
-    bytes.addAll(generator.row([
-      PosColumn(text: 'License', width: 4),
-      PosColumn(text: driversLicense, width: 8, styles: const PosStyles(align: PosAlign.right, bold: true)),
-    ]));
-    
-    // Plate
+    bytes.addAll(generator.text(
+      'OFFICE OF THE MAYOR',
+      styles: const PosStyles(bold: true, align: PosAlign.center),
+    ));
+    bytes.addAll(generator.text(
+      'CITATION TICKET',
+      styles: const PosStyles(
+        bold: true,
+        align: PosAlign.center,
+        height: PosTextSize.size2,
+        width: PosTextSize.size2,
+      ),
+    ));
+    bytes.addAll(generator.hr());
+
+    // ---------------------------------------------------------
+    // VIOLATOR INFO
+    // ---------------------------------------------------------
+    bytes.addAll(generator.text('NAME: $violatorName'));
+    bytes.addAll(generator.text('LICENSE: $driversLicense'));
+
     if (plateNo.isNotEmpty) {
-      bytes.addAll(generator.row([
-        PosColumn(text: 'Plate No', width: 4),
-        PosColumn(text: plateNo, width: 8, styles: const PosStyles(align: PosAlign.right)),
-      ]));
+      bytes.addAll(generator.text('PLATE NO: $plateNo'));
     }
-    
-    // Address (Optional but good for receipt style)
+
     if (address != null && address.isNotEmpty) {
-       // Address might be long, so we print it on next line if needed, or just standard 4/8 split
-       bytes.addAll(generator.row([
-        PosColumn(text: 'Address', width: 4),
-        PosColumn(text: address, width: 8, styles: const PosStyles(align: PosAlign.right)),
-      ]));
+      bytes.addAll(generator.text('ADDRESS: $address'));
     }
 
-    bytes.addAll(generator.hr(ch: '-'));
+    final ageText = age ?? 'N/A';
+    final sexText = sex ?? 'N/A';
+    bytes.addAll(generator.text('AGE/SEX: $ageText / $sexText'));
 
-    // 🔹 4. VIOLATION DETAILS
-    bytes.addAll(generator.text('VIOLATION DETAILS', styles: const PosStyles(bold: true, align: PosAlign.left)));
-    
-    // Violation (Can be long, maybe full width value)
-    bytes.addAll(generator.text('Violation:', styles: const PosStyles(align: PosAlign.left)));
-    bytes.addAll(generator.text(violation, styles: const PosStyles(align: PosAlign.right, bold: true)));
+    bytes.addAll(generator.hr());
 
-    // Location
-    bytes.addAll(generator.row([
-      PosColumn(text: 'Location', width: 4),
-      PosColumn(text: chokepoint, width: 8, styles: const PosStyles(align: PosAlign.right)),
-    ]));
+    // ---------------------------------------------------------
+    // VIOLATION DETAILS
+    // ---------------------------------------------------------
+    bytes.addAll(generator.text('VIOLATION:'));
+    bytes.addAll(generator.text(violation, styles: const PosStyles(align: PosAlign.left)));
+    bytes.addAll(generator.feed(1));
 
-    // Control No
-    bytes.addAll(generator.row([
-      PosColumn(text: 'Control No', width: 6),
-      PosColumn(text: controlNo, width: 6, styles: const PosStyles(align: PosAlign.right, bold: true)),
-    ]));
+    bytes.addAll(generator.text('LOCATION: $chokepoint'));
+    bytes.addAll(generator.text('CONTROL NO: $controlNo'));
 
-    bytes.addAll(generator.hr(ch: '-'));
+    bytes.addAll(generator.hr());
 
-    // 🔹 5. PAYMENT / FINE
-    bytes.addAll(generator.row([
-      PosColumn(text: 'FINE AMOUNT', width: 6, styles: const PosStyles(bold: true)),
-      PosColumn(text: 'P $fine', width: 6, styles: const PosStyles(align: PosAlign.right, bold: true, width: PosTextSize.size2, height: PosTextSize.size2)),
-    ]));
+    // ---------------------------------------------------------
+    // FINE
+    // ---------------------------------------------------------
+    bytes.addAll(generator.text(
+      'TOTAL FINE: P $fine',
+      styles: const PosStyles(bold: true),
+    ));
+
+    // ---------------------------------------------------------
+    // SIGNATURES
+    // ---------------------------------------------------------
+    bytes.addAll(generator.feed(1));
+    bytes.addAll(generator.text(
+      'ISSUED BY: $issuedBy',
+      styles: const PosStyles(bold: true, align: PosAlign.center),
+    ));
     
     bytes.addAll(generator.feed(2));
+    bytes.addAll(generator.text(
+      '____________________________',
+      styles: const PosStyles(align: PosAlign.center),
+    ));
+    bytes.addAll(generator.text(
+      'Signature of Violator',
+      styles: const PosStyles(align: PosAlign.center),
+    ));
 
-    // 🔹 6. SIGNATURES
-    bytes.addAll(generator.text(issuedBy.toUpperCase(), styles: const PosStyles(align: PosAlign.center, underline: true)));
-    bytes.addAll(generator.text('Apprehending Officer', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
-    bytes.addAll(generator.feed(2));
-    bytes.addAll(generator.text('____________________________', styles: const PosStyles(align: PosAlign.center)));
-    bytes.addAll(generator.text('Signature of Violator', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
-    
     bytes.addAll(generator.feed(3));
     bytes.addAll(generator.cut());
 

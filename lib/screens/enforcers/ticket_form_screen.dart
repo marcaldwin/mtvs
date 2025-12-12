@@ -12,6 +12,7 @@ import '../../auth/auth.dart';
 
 import 'ticket_form_models.dart';
 import 'ticket_form_sections.dart';
+import 'ticket_preview_dialog.dart';
 import '../../providers/enforcer_stats_provider.dart';
 
 class TicketFormScreen extends StatefulWidget {
@@ -326,48 +327,37 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         );
       }
 
-      // 🔹 4) API SUCCESS → TRY TO PRINT (WITH CONTROL NO + ISSUER)
-      bool printed = false;
-      try {
+      // 🔹 4) API SUCCESS → SHOW PREVIEW DIALOG
+      if (mounted) {
         final violationSummary = _selectedViolations
             .map((v) => v.name)
             .join(', \n');
-
+            
         final fineText = _fine.text.trim().isEmpty ? '0.00' : _fine.text.trim();
 
-        await printer.printTicket(
-          violatorName: _violatorName.text.trim(),
-          driversLicense: _driversLicense.text.trim(),
-          plateNo: _plateNo.text.trim(),
-          controlNo: controlNo, // ✅ backend-generated control number
-          violation: violationSummary,
-          fine: fineText,
-          chokepoint: chokepoint,
-          issuedBy: issuedBy, // ✅ from API (enforcer_name)
-          age: _age.text.trim(),
-          sex: _sex.text.trim(),
-          address: _address.text.trim(),
-          complianceDate: _complianceDate.text.trim(),
-        );
-        printed = true;
-      } catch (e) {
-        // Printer failed AFTER saving
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ticket saved, but printer error: $e')),
-        );
+        showDialog(
+          context: context,
+          barrierDismissible: false, // Force user to click Print or Close
+          builder: (ctx) => TicketPreviewDialog(
+            violatorName: _violatorName.text.trim(),
+            driversLicense: _driversLicense.text.trim(),
+            plateNo: _plateNo.text.trim(),
+            controlNo: controlNo,
+            violation: violationSummary,
+            fine: fineText,
+            chokepoint: chokepoint,
+            issuedBy: issuedBy,
+            age: _age.text.trim(),
+            sex: _sex.text.trim(),
+            address: _address.text.trim(),
+            complianceDate: _complianceDate.text.trim(),
+          ),
+        ).then((_) {
+            // After dialog closes (printed or not), refresh stats
+            context.read<EnforcerStatsProvider>().loadToday();
+            Navigator.pop(context); // Close the form screen
+        });
       }
-
-      // 🔹 5) FEEDBACK + REFRESH STATS + CLOSE
-      if (printed) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ticket saved. Control #: $controlNo')),
-        );
-      }
-
-      // Refresh Today’s Summary on home screen
-      context.read<EnforcerStatsProvider>().loadToday();
-
-      Navigator.pop(context);
     } finally {
       if (mounted) {
         setState(() {
