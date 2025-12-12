@@ -273,17 +273,15 @@ class PrinterService {
   Future<void> _writeEscPos(Uint8List data) async {
     if (_writeChar == null) throw Exception('Printer characteristic missing');
     
-    // Check if we can write with response (reliable)
-    final type = _writeChar!.properties.write
-        ? BluetoothCharacteristicType.write
-        : BluetoothCharacteristicType.writeWithoutResponse;
+    // Determine write type
+    // If the characteristic supports "Write With Response", we prefer that for reliability.
+    // Otherwise we use "Write Without Response".
+    final bool canWriteWithResponse = _writeChar!.properties.write;
+    final bool useWithoutResponse = !canWriteWithResponse;
 
-    // If writing WITH response, we can send larger chunks because the OS handles flow control.
-    // If WITHOUT response, we must be careful, but 20 bytes is too small.
-    // Let's try sending the whole buffer and rely on FlutterBluePlus to split it if needed,
-    // or use a safe standard chunk size of 100.
-    
-    // We will use a safe manual chunking of 180 bytes (typical BLE MTU is 20-500, but 180 is safe for most).
+    // Chunk size:
+    // If writing WITH response, safely use larger chunks (OS handles flow).
+    // If WITHOUT response, 150 is usually safe for BLE MTU, but we add a small delay.
     const int chunk = 150; 
     
     for (int i = 0; i < data.length; i += chunk) {
@@ -292,11 +290,11 @@ class PrinterService {
       
       await _writeChar!.write(
         part,
-        withoutResponse: type == BluetoothCharacteristicType.writeWithoutResponse,
+        withoutResponse: useWithoutResponse,
       );
       
       // Minimal delay to prevent flooding if using withoutResponse
-      if (type == BluetoothCharacteristicType.writeWithoutResponse) {
+      if (useWithoutResponse) {
         await Future.delayed(const Duration(milliseconds: 20));
       }
     }
