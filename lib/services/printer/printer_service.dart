@@ -172,104 +172,68 @@ class PrinterService {
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);
 
-    // 🔹 1. LOGO
-    try {
-      final ByteData data = await rootBundle.load('assets/images/tmeu_logo.png');
-      final Uint8List imgBytes = data.buffer.asUint8List();
-      final img.Image? originalImage = img.decodeImage(imgBytes);
+    // 🔹 1. LOGO (DISABLED FOR STABILITY TEST)
+    // try {
+    //   final ByteData data = await rootBundle.load('assets/images/tmeu_logo.png');
+    //   final Uint8List imgBytes = data.buffer.asUint8List();
+    //   final img.Image? originalImage = img.decodeImage(imgBytes);
 
-      if (originalImage != null) {
-        final img.Image resized = img.copyResize(originalImage, width: 140);
-        await _writeEscPos(Uint8List.fromList(generator.image(resized)));
-        await Future.delayed(const Duration(milliseconds: 1000)); // Big pause after image
-      }
-    } catch (e) {
-      debugPrint('Error printing logo: $e');
-    }
+    //   if (originalImage != null) {
+    //     final img.Image resized = img.copyResize(originalImage, width: 140);
+    //     await _writeEscPos(Uint8List.fromList(generator.image(resized)));
+    //     await Future.delayed(const Duration(milliseconds: 1000));
+    //   }
+    // } catch (e) {
+    //   debugPrint('Error printing logo: $e');
+    // }
 
-    // 🔹 2. HEADER PART 1 (Republic...)
-    final List<int> header1 = [];
-    header1.addAll(generator.text(
-      'Republic of the Philippines\n'
-      'Province of North Cotabato\n'
-      'MUNICIPALITY OF KIDAPAWAN\n'
-      'OFFICE OF THE MAYOR',
-      styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size1),
+    // 🔹 2. HEADER
+    final List<int> header = [];
+    header.addAll(generator.text(
+      'MUNICIPALITY OF KIDAPAWAN\nOFFICE OF THE MAYOR',
+      styles: const PosStyles(bold: true, align: PosAlign.center),
     ));
-    header1.addAll(generator.feed(1));
-    await _writeEscPos(Uint8List.fromList(header1));
-    await Future.delayed(const Duration(milliseconds: 500)); 
-
-    // 🔹 2. HEADER PART 2 (CITATION TICKET)
-    final List<int> header2 = [];
-    header2.addAll(generator.text('CITATION TICKET', styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2)));
-    await _writeEscPos(Uint8List.fromList(header2));
-    await Future.delayed(const Duration(milliseconds: 500)); 
-
-    // 🔹 2. HEADER PART 3 (Ordinance)
-    final List<int> header3 = [];
-    header3.addAll(generator.text('NEW NORMAL ORDINANCE NO. 06', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
-    header3.addAll(generator.hr());
-    await _writeEscPos(Uint8List.fromList(header3));
+    header.addAll(generator.feed(1));
+    header.addAll(generator.text('CITATION TICKET', styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2)));
+    header.addAll(generator.hr());
+    
+    await _writeEscPos(Uint8List.fromList(header));
     await Future.delayed(const Duration(milliseconds: 500)); 
     
-    // 🔹 3. DETAILS (Name, Age, Address, Etc)
+    // 🔹 3. CRITICAL INFO (License, Violation, Fine) - REQUESTED PRIORITY
+    final List<int> critical = [];
+    critical.addAll(generator.text('LICENSE: $driversLicense', styles: const PosStyles(bold: true, fontType: PosFontType.fontB)));
+    critical.addAll(generator.text('PLATE NO: $plateNo', styles: const PosStyles(fontType: PosFontType.fontB)));
+    critical.addAll(generator.text('VIOLATION: $violation', styles: const PosStyles(bold: true)));
+    critical.addAll(generator.text('FINE: P $fine', styles: const PosStyles(bold: true, height: PosTextSize.size2, width: PosTextSize.size2)));
+    critical.addAll(generator.hr());
+
+    await _writeEscPos(Uint8List.fromList(critical));
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // 🔹 4. DETAILS (Name, Age, Address)
     final List<int> details = [];
-    details.addAll(generator.row([
-      PosColumn(text: 'NAME: $violatorName', width: 9, styles: const PosStyles(fontType: PosFontType.fontB)),
-      PosColumn(text: 'AGE: ${age ?? ''}', width: 3, styles: const PosStyles(align: PosAlign.right, fontType: PosFontType.fontB)),
-    ]));
-
-    details.addAll(generator.row([
-      PosColumn(text: 'ADDRESS: ${address ?? ''}', width: 8, styles: const PosStyles(fontType: PosFontType.fontB)),
-      PosColumn(text: 'SEX: ${sex ?? ''}', width: 4, styles: const PosStyles(align: PosAlign.right, fontType: PosFontType.fontB)),
-    ]));
-
-    details.addAll(generator.text('DATE/TIME: ${DateTime.now().toString().substring(0, 16)}', styles: const PosStyles(fontType: PosFontType.fontB)));
+    details.addAll(generator.text('NAME: $violatorName', styles: const PosStyles(fontType: PosFontType.fontB)));
+    details.addAll(generator.text('AGE: ${age ?? "N/A"}   SEX: ${sex ?? "N/A"}', styles: const PosStyles(fontType: PosFontType.fontB)));
+    details.addAll(generator.text('ADDRESS: ${address ?? "N/A"}', styles: const PosStyles(fontType: PosFontType.fontB)));
     
     if (complianceDate != null && complianceDate.isNotEmpty) {
-      details.addAll(generator.text('COMPLIANCE DATE: $complianceDate', styles: const PosStyles(fontType: PosFontType.fontB)));
+      details.addAll(generator.text('COMPLIANCE: $complianceDate', styles: const PosStyles(fontType: PosFontType.fontB)));
     }
-    
+    details.addAll(generator.text('DATE: ${DateTime.now().toString().substring(0, 16)}', styles: const PosStyles(fontType: PosFontType.fontB)));
     details.addAll(generator.hr());
     
     await _writeEscPos(Uint8List.fromList(details));
     await Future.delayed(const Duration(milliseconds: 500));
 
-    // 🔹 4. VIOLATION LIST
-    final List<int> violations = [];
-    violations.addAll(generator.text('VIOLATIONS:', styles: const PosStyles(bold: true, underline: true)));
-    violations.addAll(generator.row([ PosColumn(text: '[ ] A. FOR NOT WEARING FACE MASK', width: 12) ]));
-    violations.addAll(generator.row([ PosColumn(text: '[ ] B. NOT PRACTICING DISTANCING', width: 12) ]));
-    violations.addAll(generator.row([ PosColumn(text: '[ ] C. VIOLATION OF CURFEW', width: 12) ]));
-    violations.addAll(generator.row([ PosColumn(text: '[ ] D. OTHER ACTS', width: 12) ]));
-    violations.addAll(generator.row([ PosColumn(text: '[ ] E. BUSINESS ESTABLISHMENTS', width: 12) ]));
-
-    violations.addAll(generator.feed(1));
-    violations.addAll(generator.text('ACTUAL VIOLATION:', styles: const PosStyles(bold: true)));
-    violations.addAll(generator.text('> $violation')); // The one selected
-    violations.addAll(generator.text('control #: $controlNo', styles: const PosStyles(bold: true)));
-    
-    await _writeEscPos(Uint8List.fromList(violations));
-    await Future.delayed(const Duration(milliseconds: 500));
-
     // 🔹 5. FOOTER
     final List<int> footer = [];
     footer.addAll(generator.feed(1));
-    footer.addAll(generator.row([
-      PosColumn(text: 'TOTAL PENALTY:', width: 6, styles: const PosStyles(bold: true)),
-      PosColumn(text: 'P $fine', width: 6, styles: const PosStyles(bold: true, align: PosAlign.right)),
-    ]));
-
-    footer.addAll(generator.hr(ch: '_'));
-    footer.addAll(generator.feed(2));
-    
     footer.addAll(generator.text(issuedBy.toUpperCase(), styles: const PosStyles(align: PosAlign.center, underline: true)));
     footer.addAll(generator.text('Apprehending Officer', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
-    footer.addAll(generator.feed(2));
+    footer.addAll(generator.feed(1));
     footer.addAll(generator.text('____________________________', styles: const PosStyles(align: PosAlign.center)));
     footer.addAll(generator.text('Signature of Violator', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
-
     footer.addAll(generator.feed(3));
     footer.addAll(generator.cut());
 
@@ -323,7 +287,7 @@ class PrinterService {
       );
       
       // Increase delay significantly to allow printer to process
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 50));
     }
   }
 
