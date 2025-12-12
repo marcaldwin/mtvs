@@ -22,10 +22,19 @@ class PrinterService {
   /// Returns true if connected, false otherwise.
   Future<bool> ensureConnected(BuildContext context) async {
     try {
-      // 0) Already connected?
-      if (_device != null && _writeChar != null && _isConnected) {
-        return true;
+      // 0) Check if we are physically connected
+      if (_device != null && _writeChar != null) {
+        // Check actual BLE state
+        final state = await _device!.connectionState.first;
+        if (state == BluetoothConnectionState.connected) {
+           return true;
+        } else {
+           // Not connected? Reset local state and try full reconnect
+           _isConnected = false;
+        }
       }
+      
+      // If we fall through here, we need to scan/connect
 
       // 1) Permissions
       final permsOk = await BtPermissions.ensure();
@@ -72,24 +81,35 @@ class PrinterService {
       // 6) Let user pick a device (auto-pick if only one)
       BluetoothDevice? selected;
 
-      if (devices.length == 1) {
-        selected = devices.first;
-      } else if (context.mounted) {
-        selected = await showDialog<BluetoothDevice>(
-          context: context,
-          builder: (_) => SimpleDialog(
-            title: const Text('Select Printer'),
-            children: [
-              for (final d in devices)
-                SimpleDialogOption(
-                  onPressed: () => Navigator.pop(context, d),
-                  child: Text(
-                    d.platformName.isNotEmpty ? d.platformName : d.remoteId.str,
-                  ),
-                ),
-            ],
-          ),
-        );
+      // 🔹 AUTO-RECONNECT OPTIMIZATION:
+      // If we lost connection to a device we just had, try to find it in the list and reconnect auto-magically
+      if (_device != null) {
+        try {
+          final sameDevice = devices.firstWhere((d) => d.remoteId == _device!.remoteId);
+          selected = sameDevice;
+        } catch (_) {}
+      }
+
+      if (selected == null) {
+          if (devices.length == 1) {
+            selected = devices.first;
+          } else if (context.mounted) {
+            selected = await showDialog<BluetoothDevice>(
+              context: context,
+              builder: (_) => SimpleDialog(
+                title: const Text('Select Printer'),
+                children: [
+                  for (final d in devices)
+                    SimpleDialogOption(
+                      onPressed: () => Navigator.pop(context, d),
+                      child: Text(
+                        d.platformName.isNotEmpty ? d.platformName : d.remoteId.str,
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }
       }
 
       if (selected == null) {
@@ -99,6 +119,7 @@ class PrinterService {
 
       // 7) Connect
       try {
+        // Attempt connect
         await selected.connect(timeout: const Duration(seconds: 8));
       } catch (_) {
         // If already connected at system level, this may throw; we can ignore
