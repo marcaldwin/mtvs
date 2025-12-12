@@ -145,8 +145,8 @@ class ClerkPaymentService {
     }
 
     final data = jsonDecode(res.body) as Map<String, dynamic>;
-    final ticketJson = data['ticket'] as Map<String, dynamic>;
-    return TicketInfo.fromTicketApi(ticketJson);
+    // The controller returns the ticket object directly, not wrapped in {ticket: ...}
+    return TicketInfo.fromTicketApi(data);
   }
 
   Future<void> voidPayment(int paymentId) async {
