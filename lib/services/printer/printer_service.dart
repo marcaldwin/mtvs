@@ -188,56 +188,89 @@ class PrinterService {
     // }
 
     // 🔹 2. HEADER
-    final List<int> header = [];
-    header.addAll(generator.text(
+    final List<int> bytes = [];
+    bytes.addAll(generator.text(
       'MUNICIPALITY OF KIDAPAWAN\nOFFICE OF THE MAYOR',
       styles: const PosStyles(bold: true, align: PosAlign.center),
     ));
-    header.addAll(generator.feed(1));
-    header.addAll(generator.text('CITATION TICKET', styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2)));
-    header.addAll(generator.hr());
+    bytes.addAll(generator.feed(1));
+    bytes.addAll(generator.text('CITATION TICKET', styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2)));
+    bytes.addAll(generator.feed(1));
     
-    await _writeEscPos(Uint8List.fromList(header));
-    await Future.delayed(const Duration(milliseconds: 500)); 
+    // 🔹 3. VIOLATOR INFO (Left-Right Split)
+    bytes.addAll(generator.text('VIOLATOR INFO', styles: const PosStyles(bold: true, align: PosAlign.left)));
     
-    // 🔹 3. CRITICAL INFO (License, Violation, Fine) - REQUESTED PRIORITY
-    final List<int> critical = [];
-    critical.addAll(generator.text('LICENSE: $driversLicense', styles: const PosStyles(bold: true, fontType: PosFontType.fontB)));
-    critical.addAll(generator.text('PLATE NO: $plateNo', styles: const PosStyles(fontType: PosFontType.fontB)));
-    critical.addAll(generator.text('VIOLATION: $violation', styles: const PosStyles(bold: true)));
-    critical.addAll(generator.text('FINE: P $fine', styles: const PosStyles(bold: true, height: PosTextSize.size2, width: PosTextSize.size2)));
-    critical.addAll(generator.hr());
-
-    await _writeEscPos(Uint8List.fromList(critical));
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    // 🔹 4. DETAILS (Name, Age, Address)
-    final List<int> details = [];
-    details.addAll(generator.text('NAME: $violatorName', styles: const PosStyles(fontType: PosFontType.fontB)));
-    details.addAll(generator.text('AGE: ${age ?? "N/A"}   SEX: ${sex ?? "N/A"}', styles: const PosStyles(fontType: PosFontType.fontB)));
-    details.addAll(generator.text('ADDRESS: ${address ?? "N/A"}', styles: const PosStyles(fontType: PosFontType.fontB)));
+    // Name
+    bytes.addAll(generator.row([
+      PosColumn(text: 'Name', width: 4),
+      PosColumn(text: violatorName, width: 8, styles: const PosStyles(align: PosAlign.right, bold: true)),
+    ]));
     
-    if (complianceDate != null && complianceDate.isNotEmpty) {
-      details.addAll(generator.text('COMPLIANCE: $complianceDate', styles: const PosStyles(fontType: PosFontType.fontB)));
+    // License
+    bytes.addAll(generator.row([
+      PosColumn(text: 'License', width: 4),
+      PosColumn(text: driversLicense, width: 8, styles: const PosStyles(align: PosAlign.right, bold: true)),
+    ]));
+    
+    // Plate
+    if (plateNo.isNotEmpty) {
+      bytes.addAll(generator.row([
+        PosColumn(text: 'Plate No', width: 4),
+        PosColumn(text: plateNo, width: 8, styles: const PosStyles(align: PosAlign.right)),
+      ]));
     }
-    details.addAll(generator.text('DATE: ${DateTime.now().toString().substring(0, 16)}', styles: const PosStyles(fontType: PosFontType.fontB)));
-    details.addAll(generator.hr());
     
-    await _writeEscPos(Uint8List.fromList(details));
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Address (Optional but good for receipt style)
+    if (address != null && address.isNotEmpty) {
+       // Address might be long, so we print it on next line if needed, or just standard 4/8 split
+       bytes.addAll(generator.row([
+        PosColumn(text: 'Address', width: 4),
+        PosColumn(text: address, width: 8, styles: const PosStyles(align: PosAlign.right)),
+      ]));
+    }
 
-    // 🔹 5. FOOTER
-    final List<int> footer = [];
-    footer.addAll(generator.feed(1));
-    footer.addAll(generator.text(issuedBy.toUpperCase(), styles: const PosStyles(align: PosAlign.center, underline: true)));
-    footer.addAll(generator.text('Apprehending Officer', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
-    footer.addAll(generator.feed(1));
-    footer.addAll(generator.text('____________________________', styles: const PosStyles(align: PosAlign.center)));
-    footer.addAll(generator.text('Signature of Violator', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
-    footer.addAll(generator.feed(3));
-    footer.addAll(generator.cut());
+    bytes.addAll(generator.hr(ch: '-'));
 
-    await _writeEscPos(Uint8List.fromList(footer));
+    // 🔹 4. VIOLATION DETAILS
+    bytes.addAll(generator.text('VIOLATION DETAILS', styles: const PosStyles(bold: true, align: PosAlign.left)));
+    
+    // Violation (Can be long, maybe full width value)
+    bytes.addAll(generator.text('Violation:', styles: const PosStyles(align: PosAlign.left)));
+    bytes.addAll(generator.text(violation, styles: const PosStyles(align: PosAlign.right, bold: true)));
+
+    // Location
+    bytes.addAll(generator.row([
+      PosColumn(text: 'Location', width: 4),
+      PosColumn(text: chokepoint, width: 8, styles: const PosStyles(align: PosAlign.right)),
+    ]));
+
+    // Control No
+    bytes.addAll(generator.row([
+      PosColumn(text: 'Control No', width: 6),
+      PosColumn(text: controlNo, width: 6, styles: const PosStyles(align: PosAlign.right, bold: true)),
+    ]));
+
+    bytes.addAll(generator.hr(ch: '-'));
+
+    // 🔹 5. PAYMENT / FINE
+    bytes.addAll(generator.row([
+      PosColumn(text: 'FINE AMOUNT', width: 6, styles: const PosStyles(bold: true)),
+      PosColumn(text: 'P $fine', width: 6, styles: const PosStyles(align: PosAlign.right, bold: true, width: PosTextSize.size2, height: PosTextSize.size2)),
+    ]));
+    
+    bytes.addAll(generator.feed(2));
+
+    // 🔹 6. SIGNATURES
+    bytes.addAll(generator.text(issuedBy.toUpperCase(), styles: const PosStyles(align: PosAlign.center, underline: true)));
+    bytes.addAll(generator.text('Apprehending Officer', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
+    bytes.addAll(generator.feed(2));
+    bytes.addAll(generator.text('____________________________', styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(generator.text('Signature of Violator', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
+    
+    bytes.addAll(generator.feed(3));
+    bytes.addAll(generator.cut());
+
+    await _writeEscPos(Uint8List.fromList(bytes));
   }
 
   /// Simple sample print to test connection
