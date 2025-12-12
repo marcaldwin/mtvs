@@ -381,7 +381,7 @@ class _PaymentHistoryTile extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.only(right: 8.0),
             child: Text(
-              'REVERSED',
+              'CANCELLED',
               style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
             ),
           ),

@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
+/**
+ * @property int $id
+ */
 class Ticket extends Model
 {
     protected $fillable = [
@@ -23,10 +26,10 @@ class Ticket extends Model
     ];
 
     protected $casts = [
-        'apprehended_at'   => 'datetime',
-        'fine_amount'      => 'decimal:2',
-        'additional_fees'  => 'decimal:2',
-        'total_amount'     => 'decimal:2',
+        'apprehended_at' => 'datetime',
+        'fine_amount' => 'decimal:2',
+        'additional_fees' => 'decimal:2',
+        'total_amount' => 'decimal:2',
     ];
 
     // 👇 this tells Laravel to include `enforcer_name` in JSON
@@ -49,7 +52,7 @@ class Ticket extends Model
      */
     public static function nextControlNo(): string
     {
-        $today  = now()->format('Ymd');
+        $today = now()->format('Ymd');
         $prefix = $today . '-';
 
         $last = static::where('control_no', 'like', $prefix . '%')

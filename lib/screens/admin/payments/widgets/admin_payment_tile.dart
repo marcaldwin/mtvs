@@ -56,7 +56,7 @@ class AdminPaymentTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  payment.status.toUpperCase(),
+                  _getStatusLabel(payment.status),
                   style: txtTheme.labelSmall?.copyWith(
                     color: statusColor,
                     fontWeight: FontWeight.w600,
@@ -155,5 +155,15 @@ class AdminPaymentTile extends StatelessWidget {
         ],
       ),
     );
+  }
+  String _getStatusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'recorded':
+        return 'PAID';
+      case 'reversed':
+        return 'CANCELLED';
+      default:
+        return status.toUpperCase();
+    }
   }
 }
