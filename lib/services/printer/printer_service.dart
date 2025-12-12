@@ -188,42 +188,27 @@ class PrinterService {
   }) async {
     if (_writeChar == null) throw Exception('Printer not connected');
 
+    // Load default profile
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);
     final List<int> bytes = [];
 
-    // ---------------------------------------------------------
-    // HEADER
-    // ---------------------------------------------------------
-    bytes.addAll(generator.text(
-      'MUNICIPALITY OF KIDAPAWAN',
-      styles: const PosStyles(bold: true, align: PosAlign.center),
-    ));
-    bytes.addAll(generator.text(
-      'OFFICE OF THE MAYOR',
-      styles: const PosStyles(bold: true, align: PosAlign.center),
-    ));
-    bytes.addAll(generator.text(
-      'CITATION TICKET',
-      styles: const PosStyles(
-        bold: true,
-        align: PosAlign.center,
-        height: PosTextSize.size2,
-        width: PosTextSize.size2,
-      ),
-    ));
-    bytes.addAll(generator.hr());
+    // PLAIN TEXT ONLY - NO STYLES - NO BOLD - NO CENTER
+    // This is the "Nuclear Option" to ensure the printer simply prints characters.
 
-    // ---------------------------------------------------------
-    // VIOLATOR INFO
-    // ---------------------------------------------------------
+    bytes.addAll(generator.text('MUNICIPALITY OF KIDAPAWAN'));
+    bytes.addAll(generator.text('OFFICE OF THE MAYOR'));
+    bytes.addAll(generator.feed(1));
+    bytes.addAll(generator.text('CITATION TICKET'));
+    bytes.addAll(generator.text('--------------------------------'));
+
     bytes.addAll(generator.text('NAME: $violatorName'));
     bytes.addAll(generator.text('LICENSE: $driversLicense'));
-
+    
     if (plateNo.isNotEmpty) {
       bytes.addAll(generator.text('PLATE NO: $plateNo'));
     }
-
+    
     if (address != null && address.isNotEmpty) {
       bytes.addAll(generator.text('ADDRESS: $address'));
     }
@@ -232,49 +217,26 @@ class PrinterService {
     final sexText = sex ?? 'N/A';
     bytes.addAll(generator.text('AGE/SEX: $ageText / $sexText'));
 
-    bytes.addAll(generator.hr());
+    bytes.addAll(generator.text('--------------------------------'));
 
-    // ---------------------------------------------------------
-    // VIOLATION DETAILS
-    // ---------------------------------------------------------
     bytes.addAll(generator.text('VIOLATION:'));
-    bytes.addAll(generator.text(violation, styles: const PosStyles(align: PosAlign.left)));
+    bytes.addAll(generator.text(violation));
     bytes.addAll(generator.feed(1));
-
     bytes.addAll(generator.text('LOCATION: $chokepoint'));
     bytes.addAll(generator.text('CONTROL NO: $controlNo'));
 
-    bytes.addAll(generator.hr());
+    bytes.addAll(generator.text('--------------------------------'));
 
-    // ---------------------------------------------------------
-    // FINE
-    // ---------------------------------------------------------
-    bytes.addAll(generator.text(
-      'TOTAL FINE: P $fine',
-      styles: const PosStyles(bold: true),
-    ));
-
-    // ---------------------------------------------------------
-    // SIGNATURES
-    // ---------------------------------------------------------
+    bytes.addAll(generator.text('TOTAL FINE: P $fine'));
     bytes.addAll(generator.feed(1));
-    bytes.addAll(generator.text(
-      'ISSUED BY: $issuedBy',
-      styles: const PosStyles(bold: true, align: PosAlign.center),
-    ));
-    
-    bytes.addAll(generator.feed(2));
-    bytes.addAll(generator.text(
-      '____________________________',
-      styles: const PosStyles(align: PosAlign.center),
-    ));
-    bytes.addAll(generator.text(
-      'Signature of Violator',
-      styles: const PosStyles(align: PosAlign.center),
-    ));
 
+    bytes.addAll(generator.text('ISSUED BY: $issuedBy'));
     bytes.addAll(generator.feed(3));
-    bytes.addAll(generator.cut());
+    bytes.addAll(generator.text('____________________________'));
+    bytes.addAll(generator.text('Signature of Violator'));
+    
+    bytes.addAll(generator.feed(5));
+    // bytes.addAll(generator.cut()); // Auto-cut disabled for stability
 
     await _writeEscPos(Uint8List.fromList(bytes));
   }
@@ -307,26 +269,36 @@ class PrinterService {
     _deviceName = null;
   }
 
-  // Adjusted _writeEscPos for maximum reliability on cheap printers
+  // Adjusted _writeEscPos for better flow control
   Future<void> _writeEscPos(Uint8List data) async {
     if (_writeChar == null) throw Exception('Printer characteristic missing');
     
-    // Reduce chunk size significantly to prevent buffer overflow
-    const int chunk = 20; 
+    // Check if we can write with response (reliable)
+    final type = _writeChar!.properties.write
+        ? BluetoothCharacteristicType.write
+        : BluetoothCharacteristicType.writeWithoutResponse;
+
+    // If writing WITH response, we can send larger chunks because the OS handles flow control.
+    // If WITHOUT response, we must be careful, but 20 bytes is too small.
+    // Let's try sending the whole buffer and rely on FlutterBluePlus to split it if needed,
+    // or use a safe standard chunk size of 100.
+    
+    // We will use a safe manual chunking of 180 bytes (typical BLE MTU is 20-500, but 180 is safe for most).
+    const int chunk = 150; 
     
     for (int i = 0; i < data.length; i += chunk) {
-      final part = data.sublist(
-        i,
-        (i + chunk > data.length) ? data.length : i + chunk,
-      );
+      final end = (i + chunk < data.length) ? i + chunk : data.length;
+      final part = data.sublist(i, end);
       
       await _writeChar!.write(
         part,
-        withoutResponse: _writeChar!.properties.writeWithoutResponse,
+        withoutResponse: type == BluetoothCharacteristicType.writeWithoutResponse,
       );
       
-      // Increase delay significantly to allow printer to process
-      await Future.delayed(const Duration(milliseconds: 50));
+      // Minimal delay to prevent flooding if using withoutResponse
+      if (type == BluetoothCharacteristicType.writeWithoutResponse) {
+        await Future.delayed(const Duration(milliseconds: 20));
+      }
     }
   }
 
