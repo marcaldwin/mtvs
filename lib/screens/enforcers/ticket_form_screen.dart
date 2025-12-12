@@ -28,6 +28,12 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
   final _driversLicense = TextEditingController();
   final _plateNo = TextEditingController();
 
+  // 🔹 New Fields
+  final _age = TextEditingController();
+  final _sex = TextEditingController();
+  final _address = TextEditingController();
+  final _complianceDate = TextEditingController();
+
   final _fine = TextEditingController();
 
   bool _submitting = false;
@@ -54,6 +60,10 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
     _violatorName.dispose();
     _driversLicense.dispose();
     _plateNo.dispose();
+    _age.dispose();
+    _sex.dispose();
+    _address.dispose();
+    _complianceDate.dispose();
     _fine.dispose();
     super.dispose();
   }
@@ -250,6 +260,10 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
         'drivers_license': _driversLicense.text.trim(),
         'plate_no': _plateNo.text.trim(),
         'place_of_apprehension': chokepoint,
+        'age': _age.text.trim(),
+        'sex': _sex.text.trim(),
+        'address': _address.text.trim(),
+        'compliance_date': _complianceDate.text.trim(),
       };
 
       // Multi-violations: violations[0][violation_id], violations[1][violation_id], ...
@@ -330,6 +344,10 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
           fine: fineText,
           chokepoint: chokepoint,
           issuedBy: issuedBy, // ✅ from API (enforcer_name)
+          age: _age.text.trim(),
+          sex: _sex.text.trim(),
+          address: _address.text.trim(),
+          complianceDate: _complianceDate.text.trim(),
         );
         printed = true;
       } catch (e) {
@@ -374,6 +392,10 @@ class _TicketFormScreenState extends State<TicketFormScreen> {
               violatorName: _violatorName,
               driversLicense: _driversLicense,
               plateNo: _plateNo,
+              age: _age,
+              sex: _sex,
+              address: _address,
+              complianceDate: _complianceDate,
             ),
             ViolationSection(
               violationTypes: _violationTypes,

@@ -23,6 +23,7 @@ class Ticket extends Model
         'apprehended_at',
         'control_no',
         'status',
+        'compliance_date',
     ];
 
     protected $casts = [

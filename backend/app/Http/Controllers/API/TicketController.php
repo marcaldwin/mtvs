@@ -21,6 +21,12 @@ class TicketController extends Controller
             'plate_no' => 'nullable|string|max:255',
             'place_of_apprehension' => 'nullable|string|max:255',
 
+            // 🔹 New Fields
+            'age' => 'nullable|integer',
+            'sex' => 'nullable|string|max:10',
+            'address' => 'nullable|string|max:255',
+            'compliance_date' => 'nullable|date',
+
             // 🔹 Multi-violations
             'violations' => 'required|array|min:1',
             'violations.*.violation_id' => 'required|integer|exists:violations,id',
@@ -29,13 +35,16 @@ class TicketController extends Controller
         try {
             $ticket = DB::transaction(function () use ($data, $user) {
                 // 1) Violator record
-                $violator = Violator::firstOrCreate(
+                // Update if exists or create
+                $violator = Violator::updateOrCreate(
                     [
                         'drivers_license' => $data['drivers_license'],
                     ],
                     [
                         'name' => $data['violator_name'],
-                        'address' => null,
+                        'address' => $data['address'] ?? null,
+                        'age' => $data['age'] ?? null,
+                        'sex' => $data['sex'] ?? null,
                         'plate_no' => $data['plate_no'] ?? null,
                         'kd_no' => null,
                     ]
@@ -69,6 +78,7 @@ class TicketController extends Controller
                     'additional_fees' => $additionalFees,
                     'total_amount' => $totalAmount,
                     'place_of_apprehension' => $data['place_of_apprehension'] ?? null,
+                    'compliance_date' => $data['compliance_date'] ?? null,
                     'status' => 'unpaid',
                     'apprehended_at' => now(),
                 ]);

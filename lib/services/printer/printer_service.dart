@@ -165,6 +165,7 @@ class PrinterService {
     String? address,
     String? age,
     String? sex,
+    String? complianceDate,
   }) async {
     if (_writeChar == null) throw Exception('Printer not connected');
 
@@ -190,8 +191,8 @@ class PrinterService {
     final List<int> header1 = [];
     header1.addAll(generator.text(
       'Republic of the Philippines\n'
-      'Province of Davao de Oro\n'
-      'MUNICIPALITY OF NABUNTURAN\n'
+      'Province of North Cotabato\n'
+      'MUNICIPALITY OF KIDAPAWAN\n'
       'OFFICE OF THE MAYOR',
       styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size1),
     ));
@@ -212,8 +213,6 @@ class PrinterService {
     await _writeEscPos(Uint8List.fromList(header3));
     await Future.delayed(const Duration(milliseconds: 500)); 
     
-    // ... rest is same but make sure _writeEscPos uses smaller chunks ...
-
     // 🔹 3. DETAILS (Name, Age, Address, Etc)
     final List<int> details = [];
     details.addAll(generator.row([
@@ -227,6 +226,11 @@ class PrinterService {
     ]));
 
     details.addAll(generator.text('DATE/TIME: ${DateTime.now().toString().substring(0, 16)}', styles: const PosStyles(fontType: PosFontType.fontB)));
+    
+    if (complianceDate != null && complianceDate.isNotEmpty) {
+      details.addAll(generator.text('COMPLIANCE DATE: $complianceDate', styles: const PosStyles(fontType: PosFontType.fontB)));
+    }
+    
     details.addAll(generator.hr());
     
     await _writeEscPos(Uint8List.fromList(details));

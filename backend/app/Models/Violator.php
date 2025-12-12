@@ -12,6 +12,8 @@ class Violator extends Model
     protected $fillable = [
         'name',
         'address',
+        'age',
+        'sex',
         'drivers_license',
         'plate_no',
         'kd_no',
