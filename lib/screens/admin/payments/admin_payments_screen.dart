@@ -327,7 +327,7 @@ class _AdminPaymentsScreenState extends State<AdminPaymentsScreen> {
                 items: const [
                   DropdownMenuItem(value: 'all', child: Text('All')),
                   DropdownMenuItem(value: 'recorded', child: Text('Paid')),
-                  DropdownMenuItem(value: 'reversed', child: Text('Cancelled')),
+                  DropdownMenuItem(value: 'reversed', child: Text('Unpaid')),
                 ],
                 onChanged: (value) {
                   if (value != null) {

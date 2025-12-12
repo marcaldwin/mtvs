@@ -161,7 +161,7 @@ class AdminPaymentTile extends StatelessWidget {
       case 'recorded':
         return 'PAID';
       case 'reversed':
-        return 'CANCELLED';
+        return 'UNPAID';
       default:
         return status.toUpperCase();
     }

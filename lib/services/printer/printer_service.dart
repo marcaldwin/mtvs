@@ -186,22 +186,33 @@ class PrinterService {
       debugPrint('Error printing logo: $e');
     }
 
-    // 🔹 2. HEADER
-    final List<int> header = [];
-    header.addAll(generator.text(
+    // 🔹 2. HEADER PART 1 (Republic...)
+    final List<int> header1 = [];
+    header1.addAll(generator.text(
       'Republic of the Philippines\n'
       'Province of Davao de Oro\n'
       'MUNICIPALITY OF NABUNTURAN\n'
       'OFFICE OF THE MAYOR',
       styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size1),
     ));
-    header.addAll(generator.feed(1));
-    header.addAll(generator.text('CITATION TICKET', styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2)));
-    header.addAll(generator.text('NEW NORMAL ORDINANCE NO. 06', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
-    header.addAll(generator.hr());
-    
-    await _writeEscPos(Uint8List.fromList(header));
+    header1.addAll(generator.feed(1));
+    await _writeEscPos(Uint8List.fromList(header1));
     await Future.delayed(const Duration(milliseconds: 500)); 
+
+    // 🔹 2. HEADER PART 2 (CITATION TICKET)
+    final List<int> header2 = [];
+    header2.addAll(generator.text('CITATION TICKET', styles: const PosStyles(bold: true, align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2)));
+    await _writeEscPos(Uint8List.fromList(header2));
+    await Future.delayed(const Duration(milliseconds: 500)); 
+
+    // 🔹 2. HEADER PART 3 (Ordinance)
+    final List<int> header3 = [];
+    header3.addAll(generator.text('NEW NORMAL ORDINANCE NO. 06', styles: const PosStyles(align: PosAlign.center, fontType: PosFontType.fontB)));
+    header3.addAll(generator.hr());
+    await _writeEscPos(Uint8List.fromList(header3));
+    await Future.delayed(const Duration(milliseconds: 500)); 
+    
+    // ... rest is same but make sure _writeEscPos uses smaller chunks ...
 
     // 🔹 3. DETAILS (Name, Age, Address, Etc)
     final List<int> details = [];
@@ -289,20 +300,26 @@ class PrinterService {
     _deviceName = null;
   }
 
+  // Adjusted _writeEscPos for maximum reliability on cheap printers
   Future<void> _writeEscPos(Uint8List data) async {
     if (_writeChar == null) throw Exception('Printer characteristic missing');
-    const int chunk = 100; // Smaller chunks for safety
+    
+    // Reduce chunk size significantly to prevent buffer overflow
+    const int chunk = 20; 
+    
     for (int i = 0; i < data.length; i += chunk) {
       final part = data.sublist(
         i,
         (i + chunk > data.length) ? data.length : i + chunk,
       );
+      
       await _writeChar!.write(
         part,
         withoutResponse: _writeChar!.properties.writeWithoutResponse,
       );
-      // Wait longer between chunks for cheap printers
-      await Future.delayed(const Duration(milliseconds: 60));
+      
+      // Increase delay significantly to allow printer to process
+      await Future.delayed(const Duration(milliseconds: 100));
     }
   }
 
