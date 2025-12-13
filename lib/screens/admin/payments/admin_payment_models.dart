@@ -44,7 +44,6 @@ class AdminPayment {
       paidAt: paidAt,
       cashierName: json['cashier_name'] as String?,
     );
-      );
   }
 
   factory AdminPayment.fromTicketInfo(TicketInfo ticket) {
@@ -58,5 +57,4 @@ class AdminPayment {
       cashierName: null,
     );
   }
-}
 }

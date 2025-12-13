@@ -81,13 +81,65 @@ class _AdminViolationDetailScreenState
     }
   }
 
+  Future<void> _handleDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Violation'),
+        content: Text(
+          'Are you sure you want to delete violation "${_v.name}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _saving = true);
+    try {
+      await _service.delete(_v.id);
+      if (mounted) {
+        Navigator.pop(context, true); // Return true to indicate change
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Violation deleted')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Error deleting: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final created = _v.createdAt != null
         ? DateFormat.yMMMd().format(_v.createdAt!)
         : '';
     return Scaffold(
-      appBar: AppBar(title: const Text('Violation Detail')),
+      appBar: AppBar(
+        title: const Text('Violation Detail'),
+        actions: [
+          IconButton(
+            onPressed: _saving ? null : _handleDelete,
+            icon: const Icon(Icons.delete_outline, color: Colors.orange),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

@@ -34,7 +34,7 @@ class ViolationController extends Controller
      */
     public function index(Request $request)
     {
-        $q    = trim((string) $request->query('q', ''));
+        $q = trim((string) $request->query('q', ''));
         $type = trim((string) $request->query('type', ''));
 
         $query = Violation::query();
@@ -81,9 +81,9 @@ class ViolationController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'type'         => 'required|string|max:255',
-            'name'         => 'required|string|max:255',
-            'fine'         => 'required|numeric|min:0',
+            'type' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+            'fine' => 'required|numeric|min:0',
             'ordinance_no' => 'nullable|string|max:255',
         ]);
 
@@ -98,14 +98,23 @@ class ViolationController extends Controller
     public function update(Request $request, Violation $violation)
     {
         $data = $request->validate([
-            'type'         => 'required|string|max:255',
-            'name'         => 'required|string|max:255',
-            'fine'         => 'required|numeric|min:0',
+            'type' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
+            'fine' => 'required|numeric|min:0',
             'ordinance_no' => 'nullable|string|max:255',
         ]);
 
         $violation->update($data);
 
         return response()->json($violation);
+    }
+
+    /**
+     * DELETE /api/admin/violations/{violation}
+     */
+    public function destroy(Violation $violation)
+    {
+        $violation->delete();
+        return response()->json(null, 204);
     }
 }

@@ -61,6 +61,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('admin/violations', [ViolationController::class, 'store']);
     Route::put('admin/violations/{violation}', [ViolationController::class, 'update']);
     Route::patch('admin/violations/{violation}', [ViolationController::class, 'update']);
+    Route::delete('admin/violations/{violation}', [ViolationController::class, 'destroy']);
 
     // Admin payments
     Route::get('admin/payments', [AdminPaymentController::class, 'index']);

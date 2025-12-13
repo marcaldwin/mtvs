@@ -91,4 +91,12 @@ class AdminViolationService {
     );
     return Violation.fromJson(res.data as Map<String, dynamic>);
   }
+
+  // DELETE
+  Future<void> delete(int id) async {
+    await dio.delete(
+      '/admin/violations/$id',
+      options: Options(headers: _authHeaders()),
+    );
+  }
 }
