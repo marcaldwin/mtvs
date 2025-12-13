@@ -50,9 +50,18 @@ class _AdminPaymentsScreenState extends State<AdminPaymentsScreen> {
     });
 
     try {
-      final payments = await _service.fetchPayments();
+      final paymentsFuture = _service.fetchPayments();
+      // Also fetch unpaid tickets
+      final unpaidFuture = _service.fetchUnpaidTickets().catchError((e) {
+         debugPrint('Error fetching unpaid tickets: $e');
+         return <AdminPayment>[]; // Return empty list on error so main list still loads
+      });
+
+      final results = await Future.wait([paymentsFuture, unpaidFuture]);
+      final allPayments = [...results[0], ...results[1]];
+
       setState(() {
-        _payments = payments;
+        _payments = allPayments;
       });
     } on AdminPaymentException catch (e) {
       setState(() {
@@ -73,9 +82,25 @@ class _AdminPaymentsScreenState extends State<AdminPaymentsScreen> {
     final query = _searchController.text.trim().toLowerCase();
 
     final filtered = _payments.where((p) {
-      final matchesStatus = _statusFilter == 'all' || p.status == _statusFilter;
+      bool matchesStatus = true;
+      if (_statusFilter == 'recorded') {
+        matchesStatus = p.status == 'recorded';
+      } else if (_statusFilter == 'reversed') {
+        // "Unpaid" filter now means "Reversed" OR "Unpaid" (actual unpaid tickets)
+         matchesStatus = p.status == 'reversed' || p.status == 'unpaid';
+      }
 
       bool matchesDate = true;
+      // Only check date if "paidAt" exists. Unpaid tickets don't have paidAt.
+      // If we want to filter unpaid tickets by their creation date, we'd need that info.
+      // For now, let's say "date range" only applies to RECORDED payments or REVERSED payments (actions).
+      // OR, we can just show unpaid tickets regardless of date range if they are truly "outstanding".
+      // Let's assume unpaid are always shown unless filtered out by status, OR we check date if available.
+      // Current model: paidAt is null for unpaid.
+      // So if filter is set, and p.paidAt is null, what do we do?
+      // Usually unpaid bills are "current", so maybe show them always?
+      // OR hide them if date range strict?
+      // Let's show them always if date range is active, effectively treating them as "active/now".
       if (_dateRange != null && p.paidAt != null) {
         matchesDate =
             !p.paidAt!.isBefore(_dateRange!.start) &&

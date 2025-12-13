@@ -1,5 +1,7 @@
 // lib/screens/admin/payments/admin_payment_models.dart
 
+import '../../../models/ticket_payment_models.dart';
+
 class AdminPayment {
   final String receiptNo;
   final String controlNo;
@@ -42,5 +44,19 @@ class AdminPayment {
       paidAt: paidAt,
       cashierName: json['cashier_name'] as String?,
     );
+      );
   }
+
+  factory AdminPayment.fromTicketInfo(TicketInfo ticket) {
+    return AdminPayment(
+      receiptNo: 'PENDING',
+      controlNo: ticket.controlNo,
+      violatorName: ticket.violatorName,
+      amount: ticket.outstandingAmount,
+      status: 'unpaid',
+      paidAt: null,
+      cashierName: null,
+    );
+  }
+}
 }

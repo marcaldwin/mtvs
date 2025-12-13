@@ -19,7 +19,8 @@ class AdminPaymentTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final txtTheme = Theme.of(context).textTheme;
     final isReversed = payment.isReversed;
-    final statusColor = isReversed ? Colors.redAccent : Colors.greenAccent;
+    final isUnpaid = payment.status == 'unpaid';
+    final statusColor = (isReversed || isUnpaid) ? Colors.redAccent : Colors.greenAccent;
 
     final paidAtText = payment.paidAt == null
         ? 'Not set'
@@ -161,6 +162,8 @@ class AdminPaymentTile extends StatelessWidget {
       case 'recorded':
         return 'PAID';
       case 'reversed':
+        return 'REVERSED';
+      case 'unpaid':
         return 'UNPAID';
       default:
         return status.toUpperCase();

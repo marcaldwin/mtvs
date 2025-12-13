@@ -21,6 +21,8 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen>
   final _amountController = TextEditingController();
   final _remarksController = TextEditingController();
 
+  String _searchQuery = '';
+
   final _service = ClerkPaymentService();
   late TabController _tabController;
 
@@ -407,8 +409,8 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen>
               : TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildTicketList(_unpaidTickets, 'No pending tickets.'),
-                    _buildTicketList(_paidTickets, 'No payment history found.'),
+                    _buildTicketList(_filterTickets(_unpaidTickets), 'No pending tickets.'),
+                    _buildTicketList(_filterTickets(_paidTickets), 'No payment history found.'),
                   ],
                 ),
         ),
@@ -465,6 +467,15 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen>
     );
   }
 
+  List<TicketInfo> _filterTickets(List<TicketInfo> list) {
+    if (_searchQuery.isEmpty) return list;
+    return list.where((t) {
+      final control = t.controlNo.toLowerCase();
+      final name = t.violatorName?.toLowerCase() ?? '';
+      return control.contains(_searchQuery) || name.contains(_searchQuery);
+    }).toList();
+  }
+
   Widget _buildSearchBar() {
     return Row(
       children: [
@@ -472,11 +483,16 @@ class _ClerksHomeScreenState extends State<ClerksHomeScreen>
           child: TextField(
             controller: _controlNoController,
             style: const TextStyle(color: Colors.white),
+            onChanged: (val) {
+              setState(() {
+                _searchQuery = val.trim().toLowerCase();
+              });
+            },
             decoration: InputDecoration(
-              hintText: 'Enter ticket control number',
+              hintText: 'Search name or control no...',
               hintStyle: const TextStyle(color: Colors.white54),
               prefixIcon: const Icon(
-                Icons.confirmation_number,
+                Icons.search,
                 color: Colors.white70,
               ),
               filled: true,
