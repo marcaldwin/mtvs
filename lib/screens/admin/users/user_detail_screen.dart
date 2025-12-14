@@ -302,35 +302,6 @@ class UserDetailScreen extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PasswordInput extends StatefulWidget {
-  final TextEditingController controller;
-  const _PasswordInput({required this.controller});
-
-  @override
-  State<_PasswordInput> createState() => _PasswordInputState();
-}
-
-class _PasswordInputState extends State<_PasswordInput> {
-  bool _isObscure = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: widget.controller,
-      decoration: InputDecoration(
-        labelText: 'New Password',
-        border: const OutlineInputBorder(),
-        suffixIcon: IconButton(
-          icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
-          onPressed: () => setState(() => _isObscure = !_isObscure),
-        ),
-      ),
-      obscureText: _isObscure,
-    );
-  }
-
   Future<void> _setPassword(BuildContext context, String newPassword) async {
     final provider = context.read<AdminUsersProvider>();
     try {
@@ -386,6 +357,34 @@ class _PasswordInputState extends State<_PasswordInput> {
           Expanded(child: Text(v)),
         ],
       ),
+    );
+  }
+}
+
+class _PasswordInput extends StatefulWidget {
+  final TextEditingController controller;
+  const _PasswordInput({required this.controller});
+
+  @override
+  State<_PasswordInput> createState() => _PasswordInputState();
+}
+
+class _PasswordInputState extends State<_PasswordInput> {
+  bool _isObscure = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: widget.controller,
+      decoration: InputDecoration(
+        labelText: 'New Password',
+        border: const OutlineInputBorder(),
+        suffixIcon: IconButton(
+          icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
+          onPressed: () => setState(() => _isObscure = !_isObscure),
+        ),
+      ),
+      obscureText: _isObscure,
     );
   }
 }
