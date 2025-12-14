@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../providers/admin_stats_provider.dart';
+import '../../notifications/providers/admin_notifications_provider.dart';
 import '../../../auth/auth.dart';
 import 'widgets/admin_banner.dart';
 import 'widgets/stat_card.dart';
@@ -17,7 +18,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Load stats once when screen shows
+    // Load stats and notifications once when screen shows
     Future.microtask(() {
       if (!mounted) return;
 
@@ -25,6 +26,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       final token = auth.token ?? '';
 
       context.read<AdminStatsProvider>().load(token);
+      context.read<AdminNotificationsProvider>().fetchRequests();
     });
   }
 
