@@ -23,5 +23,7 @@ Route::get('/clear-cache', function () {
     \Illuminate\Support\Facades\Artisan::call('route:clear');
     \Illuminate\Support\Facades\Artisan::call('config:clear');
     \Illuminate\Support\Facades\Artisan::call('cache:clear');
-    return 'Routes and config cleared!';
+
+    \Illuminate\Support\Facades\Artisan::call('route:list');
+    return '<pre>' . \Illuminate\Support\Facades\Artisan::output() . '</pre>';
 });
