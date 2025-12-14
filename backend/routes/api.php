@@ -63,8 +63,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('admin')->group(function () {
 
         // Notifications
-        Route::get('notifications/password-resets', [AdminNotificationController::class, 'index']);
-        Route::post('notifications/password-resets/{id}/resolve', [AdminNotificationController::class, 'resolve']);
+        Route::get('notifications/pending-resets', [AdminNotificationController::class, 'index']);
+        Route::post('notifications/pending-resets/{id}/resolve', [AdminNotificationController::class, 'resolve']);
 
         // Users
         Route::get('users', [AdminUserController::class, 'index']);

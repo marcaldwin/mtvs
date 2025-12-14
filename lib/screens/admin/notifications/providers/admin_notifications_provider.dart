@@ -18,7 +18,7 @@ class AdminNotificationsProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final res = await _dio.get('admin/notifications/password-resets');
+      final res = await _dio.get('admin/notifications/pending-resets');
       if (res.data is List) {
         _requests = List.from(res.data);
       }
@@ -32,7 +32,7 @@ class AdminNotificationsProvider extends ChangeNotifier {
 
   Future<void> markAsResolved(int id) async {
     try {
-      await _dio.post('admin/notifications/password-resets/$id/resolve');
+      await _dio.post('admin/notifications/pending-resets/$id/resolve');
       // Optimistic update
       final index = _requests.indexWhere((r) => r['id'] == id);
       if (index != -1) {
