@@ -16,6 +16,53 @@ class _S extends State<LoginScreen> {
   final pass = TextEditingController();
   final form = GlobalKey<FormState>();
 
+  Future<void> _showForgotPassword(BuildContext context) async {
+    final c = TextEditingController(text: email.text); // Pre-fill if they typed it
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Forgot Password?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter your email to request a password reset from the administrator.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: c,
+              decoration: const InputDecoration(
+                labelText: 'Email Address',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final ok = await context.read<Auth>().requestPasswordReset(c.text.trim());
+              if (ok && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Request sent! An admin will review it.')),
+                );
+              } else if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Failed to send request. Check internet/email.')),
+                );
+              }
+            },
+            child: const Text('Request Reset'),
+          ),
+        ],
+      ),
+    );
+  }
+
   static const _presets = {
     'Enforcer': {'email': 'enforcer@mtvts.com', 'password': 'password123'},
     'Admin': {'email': 'admin@mtvts.com', 'password': 'password123'},
@@ -105,7 +152,7 @@ class _S extends State<LoginScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: () => _showForgotPassword(context),
                           child: const Text('Forgot password?'),
                         ),
                       ),

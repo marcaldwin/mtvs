@@ -7,9 +7,35 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\PasswordResetRequest;
 
 class AuthController extends Controller
 {
+    /**
+     * POST /api/auth/forgot-password
+     */
+    public function requestPasswordReset(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->first();
+        // Determine safe response even if user not found to prevent enumeration?
+        // For internal app, explicit error is maybe okay. Let's return success regardless.
+
+        if ($user) {
+            // Check if there is already a pending request to avoid spam?
+            $existing = PasswordResetRequest::where('user_id', $user->id)
+                ->where('is_resolved', false)
+                ->first();
+
+            if (!$existing) {
+                PasswordResetRequest::create(['user_id' => $user->id]);
+            }
+        }
+
+        return response()->json(['message' => 'If an account exists, a reset request has been sent to the admin.']);
+    }
+
     /**
      * POST /api/auth/register
      * Accepts: full_name, username, email, password, password_confirmation, (optional) role (slug: admin|enforcer|cashier)
@@ -18,10 +44,10 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'full_name' => 'required|string|max:255',
-            'username'  => 'required|string|max:255|unique:users,username',
-            'email'     => 'required|string|email|max:255|unique:users,email',
-            'password'  => 'required|string|min:6|confirmed',
-            'role'      => 'nullable|string|max:50', // slug (e.g. admin|enforcer|cashier)
+            'username' => 'required|string|max:255|unique:users,username',
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'password' => 'required|string|min:6|confirmed',
+            'role' => 'nullable|string|max:50', // slug (e.g. admin|enforcer|cashier)
         ]);
 
         // Map optional role slug -> role_id
@@ -33,25 +59,25 @@ class AuthController extends Controller
 
         $user = User::create([
             'full_name' => $data['full_name'],
-            'username'  => $data['username'],
-            'email'     => $data['email'],
-            'password'  => Hash::make($data['password']),
-            'role_id'   => $roleId, // nullable is fine
+            'username' => $data['username'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'role_id' => $roleId, // nullable is fine
         ]);
 
         $token = $user->createToken('mtvts-app')->plainTextToken;
 
         return response()->json([
-            'message'    => 'Registration successful',
-            'token'      => $token,
+            'message' => 'Registration successful',
+            'token' => $token,
             'token_type' => 'Bearer',
-            'user'       => [
-                'id'        => $user->id,
+            'user' => [
+                'id' => $user->id,
                 'full_name' => $user->full_name,
-                'username'  => $user->username,
-                'email'     => $user->email,
+                'username' => $user->username,
+                'email' => $user->email,
             ],
-            'roles'      => $user->role ? [$user->role->slug] : [],
+            'roles' => $user->role ? [$user->role->slug] : [],
         ], 201);
     }
 
@@ -62,7 +88,7 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $data = $request->validate([
-            'email'    => 'required|string',   // email or username
+            'email' => 'required|string',   // email or username
             'password' => 'required|string|min:6',
         ]);
 
@@ -81,15 +107,15 @@ class AuthController extends Controller
         $token = $user->createToken('mtvts-app')->plainTextToken;
 
         return response()->json([
-            'token'      => $token,
+            'token' => $token,
             'token_type' => 'Bearer',
-            'user'       => [
-                'id'        => $user->id,
+            'user' => [
+                'id' => $user->id,
                 'full_name' => $user->full_name,
-                'username'  => $user->username,
-                'email'     => $user->email,
+                'username' => $user->username,
+                'email' => $user->email,
             ],
-            'roles'      => $user->role ? [$user->role->slug] : [],
+            'roles' => $user->role ? [$user->role->slug] : [],
         ]);
     }
 
@@ -101,11 +127,11 @@ class AuthController extends Controller
         $u = $request->user();
 
         return response()->json([
-            'id'        => $u->id,
+            'id' => $u->id,
             'full_name' => $u->full_name,
-            'username'  => $u->username,
-            'email'     => $u->email,
-            'roles'     => $u->role ? [$u->role->slug] : [],
+            'username' => $u->username,
+            'email' => $u->email,
+            'roles' => $u->role ? [$u->role->slug] : [],
         ]);
     }
 

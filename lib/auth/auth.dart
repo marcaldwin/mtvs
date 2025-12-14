@@ -172,6 +172,34 @@ class Auth extends ChangeNotifier {
     }
   }
 
+  // ---------- password reset request ----------
+  Future<bool> requestPasswordReset(String email) async {
+    busy = true;
+    error = null;
+    notifyListeners();
+    try {
+      await _dio.post(
+        'auth/forgot-password',
+        data: {'email': email},
+      );
+      // Success regardless of whether user exists
+      busy = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      error = e.toString();
+      // If dio error, extract message
+      if (e is DioException) {
+        if (e.response?.statusCode == 422) {
+          error = 'Invalid email format.';
+        }
+      }
+      busy = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // ---------- logout ----------
   Future<void> logout() async {
     try {

@@ -28,6 +28,7 @@ import 'core/api_client.dart';
 import 'screens/admin/users/data/users_repository.dart';
 import 'providers/enforcer_stats_provider.dart';
 import 'providers/admin_stats_provider.dart';
+import 'screens/admin/notifications/providers/admin_notifications_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -106,6 +107,9 @@ class MTVTSApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<AdminUsersProvider>(
           create: (ctx) => AdminUsersProvider(ctx.read<UsersRepository>()),
+        ),
+        ChangeNotifierProvider<AdminNotificationsProvider>(
+          create: (ctx) => AdminNotificationsProvider(ctx.read<Dio>()),
         ),
       ],
       child: MaterialApp(

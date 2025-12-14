@@ -105,9 +105,9 @@ class AdminUsersProvider extends ChangeNotifier {
     }
   }
 
-  Future<String> resetPassword(String id) async {
+  Future<void> setPassword(String id, String newPassword) async {
     try {
-      return await repo.resetPassword(id);
+      await repo.setPassword(id, newPassword);
     } catch (e) {
       rethrow;
     }

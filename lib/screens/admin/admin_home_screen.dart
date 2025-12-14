@@ -30,19 +30,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     return Scaffold(
       appBar: const AdminBrandAppBar(),
       body: SafeArea(
-        child: IndexedStack(
-          index: _index,
-          children: [
-            AdminUsersScreen(),
-            AdminViolationsScreen(
-              dio: widget.dio,
-              bearerToken: widget.bearerToken,
-            ),
-            AdminDashboardScreen(),
-            AdminPaymentsScreen(),
-            AdminReportsScreen(),
-          ],
-        ),
+        // Switch to direct widget rendering to avoid loading all tabs at once
+        child: _buildBody(),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: _DashboardFab(
@@ -54,6 +43,26 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         onChanged: _go,
       ),
     );
+  }
+
+  Widget _buildBody() {
+    switch (_index) {
+      case 0:
+        return AdminUsersScreen();
+      case 1:
+        return AdminViolationsScreen(
+          dio: widget.dio,
+          bearerToken: widget.bearerToken,
+        );
+      case 2:
+        return AdminDashboardScreen();
+      case 3:
+        return AdminPaymentsScreen();
+      case 4:
+        return AdminReportsScreen();
+      default:
+        return AdminDashboardScreen();
+    }
   }
 }
 

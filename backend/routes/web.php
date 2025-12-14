@@ -18,7 +18,4 @@ Route::middleware(['auth']) // or your own web middleware, or remove if no login
             ->name('print');
     });
 
-use App\Http\Controllers\PublicResetController;
 
-Route::get('/reset-password', [PublicResetController::class, 'show'])->name('password.reset.admin');
-Route::post('/reset-password', [PublicResetController::class, 'update'])->name('password.reset.update');

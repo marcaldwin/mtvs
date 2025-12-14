@@ -19,21 +19,25 @@ class AdminUserController extends Controller
     // ... (existing code)
 
     /**
-     * POST /api/admin/users/{id}/reset-password
+     * POST /api/admin/users/{id}/set-password
      */
-    public function resetPassword(string $id)
+    public function setPassword(Request $request, string $id)
     {
+        $request->validate(['password' => 'required|string|min:6']);
+
         $user = User::findOrFail($id);
-
-        // Generate random password
-        $plainPassword = Str::random(8); // e.g. a8B2x9Lm
-
-        $user->password = Hash::make($plainPassword);
+        $user->password = Hash::make($request->password);
         $user->save();
 
+        // Resolve any pending requests
+        if (class_exists(\App\Models\PasswordResetRequest::class)) {
+            \App\Models\PasswordResetRequest::where('user_id', $user->id)
+                ->where('is_resolved', false)
+                ->update(['is_resolved' => true]);
+        }
+
         return response()->json([
-            'message' => 'Password reset successfully.',
-            'password' => $plainPassword,
+            'message' => 'Password updated successfully.',
         ]);
     }
 

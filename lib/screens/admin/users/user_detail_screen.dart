@@ -98,7 +98,7 @@ class UserDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
-            onPressed: () => _confirmResetPassword(context),
+            onPressed: () => _showSetPasswordDialog(context),
             icon: const Icon(Icons.lock_reset_rounded),
             label: const Text('Reset Password'),
           ),
@@ -254,72 +254,64 @@ class UserDetailScreen extends StatelessWidget {
     }
   }
   
-  Future<void> _confirmResetPassword(BuildContext context) async {
-    final confirm = await showDialog<bool>(
+  Future<void> _showSetPasswordDialog(BuildContext context) async {
+    final passCtrl = TextEditingController();
+    await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Generate Reset Link'),
-        content: Text(
-          'Are you sure you want to generate a password reset link for "${user.name}"? '
-          'The link will be displayed for you to copy and share.',
+        title: const Text('Set New Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Enter a new password for "${user.name}". This will overwrite their current password.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passCtrl,
+              decoration: const InputDecoration(
+                labelText: 'New Password',
+                border: OutlineInputBorder(),
+              ),
+              obscureText: true,
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Generate Link'),
+            onPressed: () async {
+              if (passCtrl.text.length < 6) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('Password must be at least 6 characters')),
+                );
+                return;
+              }
+              Navigator.pop(ctx);
+              _setPassword(context, passCtrl.text);
+            },
+            child: const Text('Set Password'),
           ),
         ],
       ),
     );
+  }
 
-    if (confirm != true) return;
-
-    if (!context.mounted) return;
+  Future<void> _setPassword(BuildContext context, String newPassword) async {
     final provider = context.read<AdminUsersProvider>();
-    
     try {
-      final link = await provider.resetPassword(user.id.toString());
+      await provider.setPassword(user.id.toString(), newPassword);
       if (context.mounted) {
-         await showDialog(
-           context: context,
-           barrierDismissible: false,
-           builder: (ctx) => AlertDialog(
-             title: const Text('Reset Link Generated'),
-             content: Column(
-               mainAxisSize: MainAxisSize.min,
-               crossAxisAlignment: CrossAxisAlignment.start,
-               children: [
-                 const Text('The reset link is:'),
-                 const SizedBox(height: 12),
-                 SelectableText(
-                    link,
-                    style: const TextStyle(
-                      fontSize: 16, 
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent
-                    ),
-                 ),
-                 const SizedBox(height: 12),
-                 const Text('Please copy and share this link with the user. It expires in 24 hours.'),
-               ],
-             ),
-             actions: [
-               FilledButton(
-                 onPressed: () => Navigator.pop(ctx),
-                 child: const Text('Done'),
-               ),
-             ],
-           ),
-         );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password updated successfully')),
+        );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('Failed to generate link: $e')),
+          SnackBar(content: Text('Failed to set password: $e')),
         );
       }
     }
