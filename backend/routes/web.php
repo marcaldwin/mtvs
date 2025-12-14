@@ -16,6 +16,14 @@ Route::middleware(['auth']) // or your own web middleware, or remove if no login
         // GET /tickets/{ticket}/print
         Route::get('{ticket}/print', [TicketPrintController::class, 'show'])
             ->name('print');
-    });
+    }); // Close the group
+
+// Temporary route to clear cache on free hosting
+Route::get('/clear-cache', function () {
+    \Illuminate\Support\Facades\Artisan::call('route:clear');
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+    return 'Routes and config cleared!';
+});
 
 
