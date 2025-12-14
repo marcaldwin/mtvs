@@ -45,8 +45,9 @@ class ViolationController extends Controller
 
         if ($q !== '') {
             $query->where(function ($sub) use ($q) {
-                $sub->where('name', 'like', "%{$q}%")
-                    ->orWhere('ordinance_no', 'like', "%{$q}%");
+                // ILIKE is Postgres specific for case-insensitive search
+                $sub->where('name', 'ilike', "%{$q}%")
+                    ->orWhere('ordinance_no', 'ilike', "%{$q}%");
             });
         }
 
