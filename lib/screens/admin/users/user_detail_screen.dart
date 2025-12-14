@@ -258,44 +258,76 @@ class UserDetailScreen extends StatelessWidget {
     final passCtrl = TextEditingController();
     await showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Set New Password'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Enter a new password for "${user.name}". This will overwrite their current password.'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: passCtrl,
-              decoration: const InputDecoration(
-                labelText: 'New Password',
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          bool isObscure = true; // Not persistent across rebuilds here, need to init outside or use variable
+          // Actually StatefulBuilder's builder is called when *its* setState is called. 
+          // But we need to define the var *outside* the builder to persist it? 
+          // No, initializing inside builder resets it on every rebuild? 
+          // Wait, StatefulBuilder maintains the state for us IF we define it correctly?
+          // Actually, standard pattern: 
+          
+          return AlertDialog(
+            title: const Text('Set New Password'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Enter a new password for "${user.name}". This will overwrite their current password.'),
+                const SizedBox(height: 16),
+                _PasswordInput(controller: passCtrl),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              if (passCtrl.text.length < 6) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Password must be at least 6 characters')),
-                );
-                return;
-              }
-              Navigator.pop(ctx);
-              _setPassword(context, passCtrl.text);
-            },
-            child: const Text('Set Password'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  if (passCtrl.text.length < 6) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      const SnackBar(content: Text('Password must be at least 6 characters')),
+                    );
+                    return;
+                  }
+                  Navigator.pop(ctx);
+                  _setPassword(context, passCtrl.text);
+                },
+                child: const Text('Set Password'),
+              ),
+            ],
+          );
+        }
       ),
+    );
+  }
+}
+
+class _PasswordInput extends StatefulWidget {
+  final TextEditingController controller;
+  const _PasswordInput({required this.controller});
+
+  @override
+  State<_PasswordInput> createState() => _PasswordInputState();
+}
+
+class _PasswordInputState extends State<_PasswordInput> {
+  bool _isObscure = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: widget.controller,
+      decoration: InputDecoration(
+        labelText: 'New Password',
+        border: const OutlineInputBorder(),
+        suffixIcon: IconButton(
+          icon: Icon(_isObscure ? Icons.visibility : Icons.visibility_off),
+          onPressed: () => setState(() => _isObscure = !_isObscure),
+        ),
+      ),
+      obscureText: _isObscure,
     );
   }
 
