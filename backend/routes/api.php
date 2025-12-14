@@ -74,7 +74,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('users/{id}', [AdminUserController::class, 'destroy']);
 
         // Violations
-        // Route::get('violations', [ViolationController::class, 'adminIndex']); // If needed
+        Route::get('violations', [ViolationController::class, 'adminIndex']);
         Route::post('violations', [ViolationController::class, 'store']);
         Route::patch('violations/{violation}', [ViolationController::class, 'update']);
         Route::delete('violations/{violation}', [ViolationController::class, 'destroy']);
