@@ -19,11 +19,14 @@ Route::middleware(['auth']) // or your own web middleware, or remove if no login
     }); // Close the group
 
 // Temporary route to clear cache on free hosting
+// Temporary route to clear cache and RUN MIGRATIONS on free hosting
 Route::get('/clear-cache', function () {
     \Illuminate\Support\Facades\Artisan::call('route:clear');
     \Illuminate\Support\Facades\Artisan::call('config:clear');
     \Illuminate\Support\Facades\Artisan::call('cache:clear');
 
-    \Illuminate\Support\Facades\Artisan::call('route:list');
-    return '<pre>' . \Illuminate\Support\Facades\Artisan::output() . '</pre>';
+    // Force run migrations (needed because table is missing)
+    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+
+    return 'Routes cleared and MIGRATIONS RUN! <br> <pre>' . \Illuminate\Support\Facades\Artisan::output() . '</pre>';
 });
