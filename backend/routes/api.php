@@ -11,6 +11,8 @@ use App\Http\Controllers\API\AdminPaymentController;
 use App\Http\Controllers\API\AdminReportsController;
 use App\Http\Controllers\API\AdminStatsController;
 
+use App\Http\Controllers\API\AdminResetController;
+
 Route::get('/ping', function () {
     return response()->json([
         'pong' => true,
@@ -53,7 +55,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('admin/users', [AdminUserController::class, 'index']);
     Route::get('admin/users/{id}', [AdminUserController::class, 'show']);
     Route::patch('admin/users/{id}', [AdminUserController::class, 'update']);
-    Route::post('admin/users/{id}/reset-password', [AdminUserController::class, 'resetPassword']);
+    Route::post('admin/users/{id}/reset-password', [AdminResetController::class, 'store']);
     Route::delete('admin/users/{id}', [AdminUserController::class, 'destroy']);
 
     // Admin violations

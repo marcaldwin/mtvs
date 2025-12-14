@@ -93,8 +93,8 @@ class UsersRepository {
   Future<String> resetPassword(String id) async {
     final res = await _dio.post('/admin/users/$id/reset-password');
     final body = res.data;
-    if (body is Map && body['password'] != null) {
-      return body['password'].toString();
+    if (body is Map && body['link'] != null) {
+      return body['link'].toString();
     }
     return '';
   }

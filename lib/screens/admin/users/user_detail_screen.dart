@@ -258,10 +258,10 @@ class UserDetailScreen extends StatelessWidget {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Reset Password'),
+        title: const Text('Generate Reset Link'),
         content: Text(
-          'Are you sure you want to reset the password for "${user.name}"? '
-          'A new random password will be generated and displayed.',
+          'Are you sure you want to generate a password reset link for "${user.name}"? '
+          'The link will be displayed for you to copy and share.',
         ),
         actions: [
           TextButton(
@@ -270,7 +270,7 @@ class UserDetailScreen extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Reset'),
+            child: const Text('Generate Link'),
           ),
         ],
       ),
@@ -282,29 +282,29 @@ class UserDetailScreen extends StatelessWidget {
     final provider = context.read<AdminUsersProvider>();
     
     try {
-      final newPassword = await provider.resetPassword(user.id.toString());
+      final link = await provider.resetPassword(user.id.toString());
       if (context.mounted) {
          await showDialog(
            context: context,
            barrierDismissible: false,
            builder: (ctx) => AlertDialog(
-             title: const Text('Password Reset Successful'),
+             title: const Text('Reset Link Generated'),
              content: Column(
                mainAxisSize: MainAxisSize.min,
                crossAxisAlignment: CrossAxisAlignment.start,
                children: [
-                 const Text('The new password is:'),
+                 const Text('The reset link is:'),
                  const SizedBox(height: 12),
                  SelectableText(
-                    newPassword,
+                    link,
                     style: const TextStyle(
-                      fontSize: 24, 
+                      fontSize: 16, 
                       fontWeight: FontWeight.bold,
                       color: Colors.blueAccent
                     ),
                  ),
                  const SizedBox(height: 12),
-                 const Text('Please copy and share this with the user immediately. It will not be shown again.'),
+                 const Text('Please copy and share this link with the user. It expires in 24 hours.'),
                ],
              ),
              actions: [
@@ -319,7 +319,7 @@ class UserDetailScreen extends StatelessWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('Reset password failed: $e')),
+           SnackBar(content: Text('Failed to generate link: $e')),
         );
       }
     }
