@@ -74,6 +74,10 @@ class ViolatorDetailsSection extends StatelessWidget {
         TextFormField(
           controller: driversLicense,
           decoration: const InputDecoration(labelText: 'Driver\'s License No.'),
+          textCapitalization: TextCapitalization.characters,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s\-]')),
+          ],
           validator: (value) =>
               value == null || value.trim().isEmpty ? 'Required' : null,
         ),
@@ -81,6 +85,10 @@ class ViolatorDetailsSection extends StatelessWidget {
         TextFormField(
           controller: plateNo,
           decoration: const InputDecoration(labelText: 'Plate No. (optional)'),
+          textCapitalization: TextCapitalization.characters,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s\-]')),
+          ],
         ),
         const SizedBox(height: 12),
         const Divider(),
