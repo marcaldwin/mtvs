@@ -196,8 +196,9 @@ class PrinterService {
     // PLAIN TEXT ONLY - NO STYLES - NO BOLD - NO CENTER
     // This is the "Nuclear Option" to ensure the printer simply prints characters.
 
-    bytes.addAll(generator.text('MUNICIPALITY OF KIDAPAWAN'));
-    bytes.addAll(generator.text('OFFICE OF THE MAYOR'));
+    bytes.addAll(generator.text('CITY OF KIDAPAWAN'));
+    bytes.addAll(generator.text('OFFICE OF TRAFFIC MANAGEMENT'));
+    bytes.addAll(generator.text('ENFORCEMENT UNIT.'));
     bytes.addAll(generator.feed(1));
     bytes.addAll(generator.text('CITATION TICKET'));
     bytes.addAll(generator.text('--------------------------------'));

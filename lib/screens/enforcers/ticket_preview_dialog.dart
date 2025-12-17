@@ -95,8 +95,9 @@ class TicketPreviewDialog extends StatelessWidget {
     return const Center(
       child: Column(
         children: [
-          Text('MUNICIPALITY OF KIDAPAWAN', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
-          Text('OFFICE OF THE MAYOR', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+          Text('CITY OF KIDAPAWAN', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+          Text('OFFICE OF TRAFFIC MANAGEMENT', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+          Text('ENFORCEMENT UNIT.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
           SizedBox(height: 8),
           Text('CITATION TICKET', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         ],
