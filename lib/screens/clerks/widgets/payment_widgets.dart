@@ -102,16 +102,31 @@ class TicketSummaryCard extends StatelessWidget {
             style: textTheme.bodyMedium?.copyWith(color: onBg.withOpacity(0.7)),
           ),
           const SizedBox(height: 4),
-          if (info.plateNo != null || info.driversLicense != null)
-            Text(
-              [
-                if (info.plateNo != null) 'Plate: ${info.plateNo}',
-                if (info.driversLicense != null) 'DL: ${info.driversLicense}',
-              ].join(' · '),
-              style: textTheme.bodySmall?.copyWith(
-                color: onBg.withOpacity(0.6),
-              ),
+          if (info.plateNo != null ||
+              info.driversLicense != null ||
+              info.payments.isNotEmpty) ...[
+            Builder(
+              builder: (context) {
+                final ors = info.payments
+                    .where((p) => p.status == 'recorded' && p.receiptNo.isNotEmpty)
+                    .map((p) => p.receiptNo)
+                    .toSet() // dedupe
+                    .join(', ');
+
+                return Text(
+                  [
+                    if (info.plateNo != null) 'Plate: ${info.plateNo}',
+                    if (info.driversLicense != null)
+                      'DL: ${info.driversLicense}',
+                    if (ors.isNotEmpty) 'OR: $ors',
+                  ].join(' · '),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: onBg.withOpacity(0.6),
+                  ),
+                );
+              },
             ),
+          ],
           const Divider(height: 16, color: Colors.white12),
           Wrap(
             spacing: 8,
